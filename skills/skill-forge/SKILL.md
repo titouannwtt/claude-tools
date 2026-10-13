@@ -38,7 +38,7 @@ Checklist de faisabilité Rust, à remplir avant d'écrire le script :
 - Au moins un « oui » et un gain mesuré ou estimé : Rust.
 - Sinon, ou si le travail est lié au réseau et aux sous-processus (yt-dlp, ffmpeg, API) : Python (bibliothèque standard
   de préférence). Dire dans le plan pourquoi Rust n'est pas retenu.
-- Règle en attente de validation par l'utilisateur : « Rust si le gain est mesuré, Python sinon ».
+- Règle validée par l'utilisateur : Rust seulement si le gain est mesuré, Python sinon.
 
 ## 5. Rechercher (sous-agent)
 
