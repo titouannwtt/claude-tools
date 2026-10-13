@@ -48,7 +48,7 @@ Si le script échoue sans code attendu (1), ou si une sortie est incohérente :
 ## Proxy (repli)
 
 - Le proxy IPRoyal n'est utilisé qu'avec `--use-proxy`, et seulement après un blocage (code 4).
-- Son adresse vient de `local.env` à la racine de `claude-tools` (clé `IPROYAL_PROXY_URL`, ignoré par git).
+- Son adresse vient de `local.env` à la racine de `claude-tools` (clé `IPROYAL_RESIDENTIAL_URL`, le proxy résidentiel ; ignoré par git). Ne pas utiliser le Web Unblocker : il intercepte le TLS et casse yt-dlp. Budget limité (2 Go) : privilégier `subs` avec le proxy.
 - Ne jamais afficher la valeur du proxy, ni dans le chat, ni dans un fichier versionné.
 
 ## Après la transcription

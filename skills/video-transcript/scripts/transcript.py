@@ -6,7 +6,8 @@ Voie B (audio puis transcription locale) : `audio`, et `transcribe` pour un fich
 Diagnostic des dépendances : `doctor`.
 
 Dépendances : yt-dlp (obligatoire), ffmpeg (voie B), faster-whisper (transcription locale).
-Proxy : uniquement sur demande explicite (`--use-proxy`), valeur lue dans local.env (clé IPROYAL_PROXY_URL).
+Proxy : uniquement sur demande explicite (`--use-proxy`), valeur lue dans local.env
+(clé IPROYAL_RESIDENTIAL_URL, ou IPROYAL_PROXY_URL en repli).
 
 Sortie : toujours du JSON sur stdout. Codes de sortie :
   0 succès ; 1 erreur inattendue ; 2 entrée invalide ; 3 aucun sous-titre disponible ;
@@ -65,12 +66,20 @@ def load_local_env(explicit=None):
     return {}
 
 
+PROXY_KEYS = ("IPROYAL_RESIDENTIAL_URL", "IPROYAL_PROXY_URL")
+
+
+def configured_proxy(explicit_env=None):
+    values = load_local_env(explicit_env)
+    return next((values[key] for key in PROXY_KEYS if values.get(key)), None)
+
+
 def resolve_proxy(use_proxy, explicit_env=None):
     if not use_proxy:
         return None
-    proxy = load_local_env(explicit_env).get("IPROYAL_PROXY_URL")
+    proxy = configured_proxy(explicit_env)
     if not proxy:
-        raise Failure(EXIT_MISSING, "IPROYAL_PROXY_URL absent de local.env : impossible d'utiliser le proxy")
+        raise Failure(EXIT_MISSING, "IPROYAL_RESIDENTIAL_URL absent de local.env : impossible d'utiliser le proxy")
     return proxy
 
 
@@ -235,7 +244,7 @@ def doctor():
     except Failure:
         whisper = False
     return {"ytdlp": ytdlp, "ffmpeg": bool(shutil.which("ffmpeg")), "faster_whisper": whisper,
-            "proxy_configured": bool(load_local_env().get("IPROYAL_PROXY_URL"))}
+            "proxy_configured": bool(configured_proxy())}
 
 
 def dispatch(args):
