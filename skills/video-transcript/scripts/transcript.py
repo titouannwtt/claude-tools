@@ -192,16 +192,35 @@ def fetch_audio(url, out_dir, proxy=None):
     return audio
 
 
-def transcribe_file(path, model_name, language):
+VENV_PYTHON = Path.home() / ".venvs" / "video-transcript" / "bin" / "python"
+
+
+def import_whisper():
+    """Importe faster-whisper ; si absent, relance le script avec l'environnement dédié s'il existe."""
     try:
         from faster_whisper import WhisperModel
+        return WhisperModel
     except ImportError:
-        raise Failure(EXIT_MISSING, "faster-whisper absent : pip install faster-whisper")
+        if VENV_PYTHON.exists() and Path(sys.executable) != VENV_PYTHON:
+            os.execv(str(VENV_PYTHON), [str(VENV_PYTHON), str(Path(__file__).resolve())] + sys.argv[1:])
+        raise Failure(EXIT_MISSING, "faster-whisper absent : pip install faster-whisper "
+                      "(ou créer ~/.venvs/video-transcript)")
+
+
+def transcribe_file(path, model_name, language):
+    WhisperModel = import_whisper()
     model = WhisperModel(model_name, device="auto", compute_type="int8")
-    raw, info = model.transcribe(str(path), language=language or None, vad_filter=True)
-    segments = [{"start": round(s.start, 3), "end": round(s.end, 3), "text": s.text.strip()}
-                for s in raw if s.text.strip()]
-    return segments, info.language
+    segments, language_found = [], None
+    # Filtre de voix d'abord (évite les hallucinations sur la parole) ; sans filtre si il ne trouve rien
+    # (il supprime entièrement le chant et la musique).
+    for vad in (True, False):
+        raw, info = model.transcribe(str(path), language=language or None, vad_filter=vad)
+        segments = [{"start": round(s.start, 3), "end": round(s.end, 3), "text": s.text.strip()}
+                    for s in raw if s.text.strip()]
+        language_found = info.language
+        if segments:
+            break
+    return segments, language_found
 
 
 def doctor():
@@ -211,9 +230,9 @@ def doctor():
     except Failure:
         ytdlp = False
     try:
-        import faster_whisper  # noqa: F401
+        import_whisper()
         whisper = True
-    except ImportError:
+    except Failure:
         whisper = False
     return {"ytdlp": ytdlp, "ffmpeg": bool(shutil.which("ffmpeg")), "faster_whisper": whisper,
             "proxy_configured": bool(load_local_env().get("IPROYAL_PROXY_URL"))}
