@@ -1,0 +1,12 @@
+# Configuration locale : chemins, identité, secrets. Jamais commitée.
+local.env
+local/
+*.local.*
+.env
+.env.*
+credentials*.json
+*.key
+*.pem
+__pycache__/
+*.pyc
+target/
