@@ -1,0 +1,144 @@
+{
+  "_lisez-moi": "Gabarit de graphe d'entité JSON-LD. Supprimer cette clé avant publication. Remplacer chaque [PARAMETRE]. Un seul bloc <script type=\"application/ld+json\"> par page contient le graphe; les noeuds spécifiques (WebApplication, BlogPosting, FAQPage) ne se mettent que sur les pages concernées. Ne déclarer que des profils sameAs réels, tenus par le projet. Aucune note agrégée inventée. Les dates viennent du registre des dates (dateModified = texte visible modifié).",
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://[DOMAINE]/#organization",
+      "name": "[NOM]",
+      "url": "https://[DOMAINE]/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://[DOMAINE]/logo-512.png",
+        "width": 512,
+        "height": 512
+      },
+      "sameAs": [
+        "[URL fiche Google Play ou App Store]",
+        "[URL fiche AlternativeTo]",
+        "[URL fiche SaaSHub]",
+        "[URL profil d'avis]",
+        "[URL Wikidata, seulement si l'élément existe]",
+        "[URL chaîne YouTube, seulement si elle existe]",
+        "[URL dépôt GitHub d'exemples, seulement s'il existe]"
+      ],
+      "founder": { "@id": "https://[DOMAINE]/#founder" }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://[DOMAINE]/#founder",
+      "name": "[NOM DE L'ÉDITEUR OU DU FONDATEUR]",
+      "worksFor": { "@id": "https://[DOMAINE]/#organization" }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://[DOMAINE]/#website",
+      "name": "[NOM]",
+      "url": "https://[DOMAINE]/",
+      "publisher": { "@id": "https://[DOMAINE]/#organization" },
+      "inLanguage": ["en", "fr", "es", "de", "it", "pt", "nl", "pl", "ja", "ko"]
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://[DOMAINE]/[CHEMIN]/#webpage",
+      "url": "https://[DOMAINE]/[CHEMIN]/",
+      "name": "[TITRE DE LA PAGE]",
+      "inLanguage": "[LANGUE]",
+      "isPartOf": { "@id": "https://[DOMAINE]/#website" },
+      "dateModified": "[AAAA-MM-JJ]",
+      "primaryImageOfPage": { "@id": "https://[DOMAINE]/[CHEMIN]/#primaryimage" },
+      "breadcrumb": { "@id": "https://[DOMAINE]/[CHEMIN]/#breadcrumb" }
+    },
+    {
+      "@type": "ImageObject",
+      "@id": "https://[DOMAINE]/[CHEMIN]/#primaryimage",
+      "url": "https://[DOMAINE]/[IMAGE-OG].webp",
+      "width": 1200,
+      "height": 630,
+      "caption": "[ALT LOCALISÉ DE L'IMAGE]"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://[DOMAINE]/[CHEMIN]/#breadcrumb",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "[ACCUEIL LOCALISÉ]", "item": "https://[DOMAINE]/" },
+        { "@type": "ListItem", "position": 2, "name": "[SECTION LOCALISÉE]", "item": "https://[DOMAINE]/[SECTION]/" },
+        { "@type": "ListItem", "position": 3, "name": "[PAGE LOCALISÉE]", "item": "https://[DOMAINE]/[CHEMIN]/" }
+      ]
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://[DOMAINE]/[CHEMIN]/#software",
+      "name": "[NOM DE L'OUTIL]",
+      "url": "https://[DOMAINE]/[CHEMIN]/",
+      "applicationCategory": "[MultimediaApplication | UtilitiesApplication | ...]",
+      "operatingSystem": "[Web, Android; exact : ajouter iOS seulement si publié, sinon décrire la bêta dans le texte]",
+      "browserRequirements": "[ex. Chrome ou Edge pour Web MIDI]",
+      "inLanguage": ["en", "fr"],
+      "isAccessibleForFree": true,
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+      "provider": { "@id": "https://[DOMAINE]/#organization" },
+      "publisher": { "@id": "https://[DOMAINE]/#organization" }
+    },
+    {
+      "@type": "MobileApplication",
+      "@id": "https://[DOMAINE]/#android-app",
+      "name": "[NOM]",
+      "operatingSystem": "Android",
+      "applicationCategory": "[CATÉGORIE]",
+      "installUrl": "[URL Google Play]",
+      "provider": { "@id": "https://[DOMAINE]/#organization" }
+    },
+    {
+      "@type": "BlogPosting",
+      "@id": "https://[DOMAINE]/blog/[SLUG]/#article",
+      "headline": "[TITRE DE L'ARTICLE]",
+      "mainEntityOfPage": { "@id": "https://[DOMAINE]/blog/[SLUG]/#webpage" },
+      "image": ["https://[DOMAINE]/[IMAGE].webp"],
+      "datePublished": "[AAAA-MM-JJ]",
+      "dateModified": "[AAAA-MM-JJ]",
+      "inLanguage": "[LANGUE]",
+      "author": { "@id": "https://[DOMAINE]/#founder" },
+      "publisher": { "@id": "https://[DOMAINE]/#organization" }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://[DOMAINE]/[CHEMIN]/#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "[QUESTION 1, reprise mot pour mot du texte visible]",
+          "acceptedAnswer": { "@type": "Answer", "text": "[RÉPONSE 1, identique au texte visible]" }
+        },
+        {
+          "@type": "Question",
+          "name": "[QUESTION 2]",
+          "acceptedAnswer": { "@type": "Answer", "text": "[RÉPONSE 2]" }
+        }
+      ]
+    },
+    {
+      "@type": "VideoObject",
+      "@id": "https://[DOMAINE]/[CHEMIN]/#video",
+      "name": "[TITRE DE LA VIDÉO]",
+      "description": "[DESCRIPTION]",
+      "thumbnailUrl": "https://[DOMAINE]/[VIGNETTE].webp",
+      "uploadDate": "[AAAA-MM-JJ]",
+      "duration": "PT1M",
+      "embedUrl": "https://www.youtube-nocookie.com/embed/[ID]"
+    },
+    {
+      "@type": "DefinedTermSet",
+      "@id": "https://[DOMAINE]/glossaire/#termset",
+      "name": "[NOM DU GLOSSAIRE]",
+      "hasDefinedTerm": [
+        {
+          "@type": "DefinedTerm",
+          "name": "[TERME]",
+          "description": "[DÉFINITION, identique au texte visible]",
+          "inDefinedTermSet": { "@id": "https://[DOMAINE]/glossaire/#termset" }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,225 @@
+# robots.txt modèle : moteurs de recherche et assistants IA accueillis, application (SPA) non indexée,
+# sitemaps déclarés et lisibles par tous les robots.
+#
+# Paramètres : [DOMAINE]; [APP] = chemin de l'application client-only (ex. /app/); [CONVERT] = chemins
+# de l'application qui doivent rester indexables (ex. pages pré-rendues de conversion), à supprimer s'il
+# n'y en a pas; [SITEMAP_APP] = sitemap qui vit sous le chemin interdit.
+#
+# POURQUOI CE FICHIER EST FAIT AINSI (leçons de la campagne) :
+#
+# 1. L'EXCEPTION DU SITEMAP. Un sitemap qui vit sous un chemin interdit est lui-même interdit : avec
+#    "Disallow: [APP]" seul, Google ne pouvait pas lire [SITEMAP_APP] (erreur Search Console pendant
+#    plusieurs semaines). Une règle "Allow" plus LONGUE l'emporte : "Allow: [SITEMAP_APP]" corrige. Elle
+#    doit figurer dans CHAQUE bloc User-agent, car un robot nommé ignore le bloc générique "*".
+#
+# 2. L'ORDRE. Les "Allow" sont écrits AVANT les "Disallow" pour la lisibilité (la règle la plus longue
+#    gagne, pas l'ordre).
+#
+# 3. DISALLOW ET NOINDEX. Un "Disallow" empêche le robot de LIRE la page, donc de lire un en-tête
+#    "X-Robots-Tag: noindex" : il ne désindexe rien et peut laisser l'URL nue dans l'index. Pour retirer une
+#    page de l'index, servir "noindex" ET laisser le robot la récupérer (pas de Disallow sur ce chemin).
+#
+# 4. LES ROBOTS IA. Trois familles par éditeur : robot d'entraînement (GPTBot, ClaudeBot, CCBot,
+#    Google-Extended, Applebot-Extended), robot de recherche (OAI-SearchBot, Claude-SearchBot,
+#    PerplexityBot, Bingbot) et robot "utilisateur" déclenché par une question (ChatGPT-User, Claude-User,
+#    Perplexity-User, DuckAssistBot, MistralAI-User). Pour être cité, il faut au moins autoriser les robots
+#    de recherche et "utilisateur". Autoriser l'entraînement est un choix de l'éditeur (mémoire des modèles,
+#    effet lent); le choix par défaut de la campagne : tout autoriser.
+#
+# 5. BYTESPIDER exclu volontairement dans la campagne (pas de valeur, gros volume) : à décider.
+#
+# 6. Un CDN ne doit pas réécrire ce fichier : comparer à l'octet près le fichier en ligne et le fichier du
+#    dépôt après chaque déploiement.
+#
+# 7. Chaque règle non évidente est commentée AVEC SA DATE, pour que le prochain agent sache pourquoi.
+
+User-agent: *
+Allow: /
+Allow: [CONVERT]
+Allow: [SITEMAP_APP]
+Disallow: [APP]
+Disallow: /api/
+Disallow: /auth/
+Disallow: /signin
+
+# ── Assistants IA et moteurs de réponse : accueillis explicitement ──
+
+User-agent: GPTBot
+Allow: /
+Allow: [CONVERT]
+Allow: [SITEMAP_APP]
+Disallow: [APP]
+Disallow: /api/
+Disallow: /auth/
+Disallow: /signin
+
+User-agent: OAI-SearchBot
+Allow: /
+Allow: [CONVERT]
+Allow: [SITEMAP_APP]
+Disallow: [APP]
+Disallow: /api/
+Disallow: /auth/
+Disallow: /signin
+
+User-agent: ChatGPT-User
+Allow: /
+Allow: [CONVERT]
+Allow: [SITEMAP_APP]
+Disallow: [APP]
+Disallow: /api/
+Disallow: /auth/
+Disallow: /signin
+
+User-agent: PerplexityBot
+Allow: /
+Allow: [CONVERT]
+Allow: [SITEMAP_APP]
+Disallow: [APP]
+Disallow: /api/
+Disallow: /auth/
+Disallow: /signin
+
+User-agent: Perplexity-User
+Allow: /
+Allow: [CONVERT]
+Allow: [SITEMAP_APP]
+Disallow: [APP]
+Disallow: /api/
+Disallow: /auth/
+Disallow: /signin
+
+User-agent: ClaudeBot
+Allow: /
+Allow: [CONVERT]
+Allow: [SITEMAP_APP]
+Disallow: [APP]
+Disallow: /api/
+Disallow: /auth/
+Disallow: /signin
+
+User-agent: Claude-Web
+Allow: /
+Allow: [CONVERT]
+Allow: [SITEMAP_APP]
+Disallow: [APP]
+Disallow: /api/
+Disallow: /auth/
+Disallow: /signin
+
+User-agent: Claude-SearchBot
+Allow: /
+Allow: [CONVERT]
+Allow: [SITEMAP_APP]
+Disallow: [APP]
+Disallow: /api/
+Disallow: /auth/
+Disallow: /signin
+
+User-agent: Claude-User
+Allow: /
+Allow: [CONVERT]
+Allow: [SITEMAP_APP]
+Disallow: [APP]
+Disallow: /api/
+Disallow: /auth/
+Disallow: /signin
+
+User-agent: Google-Extended
+Allow: /
+Allow: [CONVERT]
+Allow: [SITEMAP_APP]
+Disallow: [APP]
+Disallow: /api/
+Disallow: /auth/
+Disallow: /signin
+
+User-agent: Applebot
+Allow: /
+Allow: [CONVERT]
+Allow: [SITEMAP_APP]
+Disallow: [APP]
+Disallow: /api/
+Disallow: /auth/
+Disallow: /signin
+
+User-agent: Applebot-Extended
+Allow: /
+Allow: [CONVERT]
+Allow: [SITEMAP_APP]
+Disallow: [APP]
+Disallow: /api/
+Disallow: /auth/
+Disallow: /signin
+
+User-agent: Bingbot
+Allow: /
+Allow: [CONVERT]
+Allow: [SITEMAP_APP]
+Disallow: [APP]
+Disallow: /api/
+Disallow: /auth/
+Disallow: /signin
+
+User-agent: CCBot
+Allow: /
+Allow: [CONVERT]
+Allow: [SITEMAP_APP]
+Disallow: [APP]
+Disallow: /api/
+Disallow: /auth/
+Disallow: /signin
+
+User-agent: DuckAssistBot
+Allow: /
+Allow: [CONVERT]
+Allow: [SITEMAP_APP]
+Disallow: [APP]
+Disallow: /api/
+Disallow: /auth/
+Disallow: /signin
+
+User-agent: MistralAI-User
+Allow: /
+Allow: [CONVERT]
+Allow: [SITEMAP_APP]
+Disallow: [APP]
+Disallow: /api/
+Disallow: /auth/
+Disallow: /signin
+
+User-agent: Meta-ExternalAgent
+Allow: /
+Allow: [CONVERT]
+Allow: [SITEMAP_APP]
+Disallow: [APP]
+Disallow: /api/
+Disallow: /auth/
+Disallow: /signin
+
+User-agent: Amazonbot
+Allow: /
+Allow: [CONVERT]
+Allow: [SITEMAP_APP]
+Disallow: [APP]
+Disallow: /api/
+Disallow: /auth/
+Disallow: /signin
+
+# Googlebot, Bingbot et les autres moteurs sont couverts par le bloc "*" ci-dessus (Bingbot a son bloc
+# explicite parce que ChatGPT en recherche et Copilot s'appuient sur l'index Bing).
+
+# Optionnel (décision à prendre) : exclure un robot sans valeur pour le site.
+# User-agent: Bytespider
+# Disallow: /
+
+Sitemap: https://[DOMAINE]/sitemap-index.xml
+Sitemap: https://[DOMAINE][SITEMAP_APP]
+
+# Contrôle après chaque déploiement (voir 09-procedure-autonome.md, phase 6) :
+#   for UA in Googlebot Bingbot GPTBot OAI-SearchBot ChatGPT-User ClaudeBot PerplexityBot; do
+#     curl -s -o /dev/null -w "$UA %{http_code}\n" -A "$UA" https://[DOMAINE]/robots.txt
+#     curl -s -o /dev/null -w "$UA %{http_code}\n" -A "$UA" https://[DOMAINE][SITEMAP_APP]
+#   done
+# Attendu : 200 partout. Un 403 sur le sitemap vient du serveur ou du pare-feu (filtre anti-bots),
+# pas de robots.txt : voir 08-pieges-et-incidents.md, B6.
