@@ -36,6 +36,10 @@ class ScanTextTest(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(cr.scan_text(text, []), [])
 
+    def test_marqueur_ignore_un_faux_positif(self):
+        self.assertEqual(cr.scan_text(FAKE_MAIL + '  # check-repo: ignore', []), [])
+        self.assertNotEqual(cr.scan_text(FAKE_MAIL + '  # autre commentaire', []), [])
+
     def test_ne_renvoie_jamais_la_valeur(self):
         for _, number in cr.scan_text(FAKE_KEY, []):
             self.assertIsInstance(number, int)

@@ -6,6 +6,7 @@ Les termes interdits (nom, pseudo, domaine) ne sont jamais écrits dans le dép�
 (clé FORBIDDEN_TERMS, séparés par des virgules, insensible à la casse).
 
 Usage : check_repo.py [--staged | --all] [--root DIR] [--local-env FICHIER]
+Faux positif : ajouter le commentaire « check-repo: ignore » sur la ligne concernée.
 Sortie : une ligne par constat (type, fichier:ligne), jamais la valeur trouvée.
 Codes de sortie : 0 rien trouvé ; 1 constats ; 2 erreur d'usage ou dépôt introuvable.
 Python 3.9 compatible.
@@ -20,6 +21,8 @@ PLACEHOLDER_USERS = {"user", "username", "you", "name", "me", "runner", "ubuntu"
                      "yourname", "<user>", "$user", "nom"}
 SAFE_EMAIL_PARTS = ("noreply", "no-reply", "example.com", "example.org", "@localhost")
 SAFE_IP_PREFIXES = ("127.", "0.", "192.0.2.", "198.51.100.", "203.0.113.")
+# Une ligne portant ce marqueur est ignorée (faux positif assumé : adresse publique, valeur de test).
+IGNORE_MARKER = "check-repo: ignore"
 EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}")
 IPV4_RE = re.compile(r"(?<![\d.])((?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3})(?![\d.])")
 HOME_RE = re.compile(r"/(?:Users|home)/([A-Za-z0-9._<>$-]+)")
@@ -48,6 +51,8 @@ def scan_text(text, terms):
     """Retourne [(type, numéro de ligne)] pour un texte. Les valeurs trouvées ne sont jamais renvoyées."""
     findings = []
     for number, line in enumerate(text.splitlines(), 1):
+        if IGNORE_MARKER in line:
+            continue
         lowered = line.lower()
         for term in terms:
             if term in lowered:
