@@ -54,12 +54,21 @@ Ne rien recommander sans ce tableau.
 - Réparation : si le script échoue, l'agent lit l'erreur, corrige le script, relance. Deux tentatives au plus,
   puis il remonte à l'utilisateur. Le script ne doit jamais demander à un modèle de faire le travail à sa place.
 
-## 7. Installer
+## 7. Publier
 
-- Ranger dans `skills/<nom>/` du dépôt `claude-tools`.
-- Mac : lien symbolique `~/.claude/skills/<nom>` vers ce dossier.
-- VPS : même lien, une fois le script d'installation en place.
-- Commit par skill, message `feat(skill): <nom>`.
+Le skill est créé dans `skills/<nom>/` du dépôt `claude-tools` (Mac : `~/dev/claude-tools`, VPS : `~/claude-tools`).
+Une fois les tests verts, lancer depuis la racine du dépôt :
+
+`tools/publish_skill.sh <nom> ["message de commit"]`
+
+Le script enchaîne, sans autre intervention :
+1. contrôle des secrets, des e-mails, des IP, des chemins personnels et des termes interdits de `local.env`
+   (`tools/check_repo.py --staged`) ; en cas de constat, rien n'est commité, corriger puis relancer ;
+2. commit et push sur `main` ;
+3. `git pull` et `./install.sh` sur l'autre machine (réglage `PEER_SSH` de `local.env`), qui crée le lien dans
+   `~/.claude/skills/`. Sans `PEER_SSH`, il affiche la commande à lancer à la main.
+
+Ne jamais contourner le contrôle (`--no-verify`) ni commiter un fichier de `local.env`.
 
 ## Garde-fous
 
