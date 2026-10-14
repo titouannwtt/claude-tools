@@ -1,35 +1,34 @@
-# E-mails de prise de contact pour les listes "meilleurs outils" (fr et en)
+# Outreach e-mails for "best tools" lists (fr and en)
 
-Usage : un auteur d'article ou de liste qui cite déjà des outils comparables (voir
-`../06-hors-site.md`, §8). Règles de la campagne : **un seul e-mail par article, une seule relance, pas
-avant 3 semaines, rien offert en échange d'un lien** (pas de lien payant, pas de contrepartie).
+Use: an author of an article or list that already cites comparable tools (see
+`../06-off-site.md`, §8). Campaign rules: **one e-mail per article, a single follow-up, not before 3 weeks, nothing
+offered in exchange for a link** (no paid link, no quid pro quo).
 
-## Paramètres
+## Parameters
 
-| Paramètre | Contenu | Exemple (Jam Jam) |
+| Parameter | Content | Example (Jam Jam) |
 |---|---|---|
-| `[PRÉNOM]` | prénom de l'auteur (page auteur ou contact) ; à défaut "Bonjour," | |
-| `[TITRE]` | titre exact de l'article | |
-| `[URL]` | adresse de l'article | |
-| `[PHRASE UTILE]` | une phrase PRÉCISE sur ce que l'article apporte (jamais un compliment générique) | "la partie sur le réglage du micro est la plus claire que j'aie lue" |
-| `[NOM]` | nom du produit | Jam Jam |
-| `[SECTION]` | partie de l'article où le produit trouverait sa place | "accordeurs gratuits en ligne" |
-| `[FONCTION]` | une phrase sur la fonction qui correspond, avec un chiffre vérifié `[CHIFFRE]` | "un accordeur chromatique dans le navigateur, 21 instruments et 79 accordages, sans compte" |
-| `[URL OUTIL]` | la page de l'outil précis qui correspond à la section (jamais l'accueil) | page de l'accordeur |
-| `[SIGNATURE]` | prénom et nom de l'expéditeur, produit, adresse du site | |
+| `[PRÉNOM]` | first name of the author (author page or contact); otherwise the greeting "Bonjour," | |
+| `[TITRE]` | exact title of the article | |
+| `[URL]` | address of the article | |
+| `[PHRASE UTILE]` | one PRECISE sentence about what the article brings (never a generic compliment) | "la partie sur le réglage du micro est la plus claire que j'aie lue" |
+| `[NOM]` | product name | Jam Jam |
+| `[SECTION]` | part of the article where the product would fit | "accordeurs gratuits en ligne" |
+| `[FONCTION]` | one sentence about the matching feature, with a verified figure `[CHIFFRE]` | "un accordeur chromatique dans le navigateur, 21 instruments et 79 accordages, sans compte" |
+| `[URL OUTIL]` | the page of the specific tool that matches the section (never the home page) | page de l'accordeur |
+| `[SIGNATURE]` | first and last name of the sender, product, site address | |
 
-## Avant d'envoyer (liste de contrôle)
+## Before sending (checklist)
 
-1. L'article est-il cité par au moins un assistant (relevé du panel) ou bien classé ? Sinon, priorité
-   basse.
-2. L'article a-t-il été mis à jour depuis moins d'un an ? Sinon, l'auteur ne le reprendra probablement pas.
-3. Le produit répond-il vraiment à la section visée ? Ne proposez rien qui soit hors sujet.
-4. Chaque chiffre de `[FONCTION]` vient de la table de chiffres validés.
-5. L'expéditeur est la personne qui édite le produit et le dit dans la signature (pas de faux nom).
-6. Pas de pièce jointe, pas de lien raccourci, un seul lien vers `[URL OUTIL]`.
-7. Vous avez noté l'envoi dans le tableau de prospection (URL, date, contact, résultat).
+1. Is the article cited by at least one assistant (panel reading) or ranked? If not, low priority.
+2. Has the article been updated within the last year? If not, the author will probably not pick it up.
+3. Does the product really answer the targeted section? Do not propose anything off-topic.
+4. Every figure in `[FONCTION]` comes from the table of validated figures.
+5. The sender is the person who publishes the product and says so in the signature (no fake name).
+6. No attachment, no shortened link, a single link to `[URL OUTIL]`.
+7. The sending is recorded in the prospecting table (URL, date, contact, result).
 
-## Version française
+## French version
 
 ```
 Objet : Une suggestion pour votre article « [TITRE] »
@@ -50,7 +49,7 @@ Bonne journée,
 [SIGNATURE]
 ```
 
-### Relance (une seule, au moins 3 semaines plus tard)
+### Follow-up (one only, at least 3 weeks later)
 
 ```
 Objet : Re : Une suggestion pour votre article « [TITRE] »
@@ -65,7 +64,7 @@ Bonne journée,
 [SIGNATURE]
 ```
 
-### Réponse si l'auteur répond oui ou pose une question
+### Reply if the author answers yes or asks a question
 
 ```
 Merci pour votre retour. Voici ce qui peut vous être utile : [URL OUTIL], [FONCTION]. Je peux vous
@@ -114,21 +113,18 @@ Thanks for getting back to me. Here is what may help: [TOOL URL], [FUNCTION]. I 
 test access or the exact figures with their source if you like. Nothing is expected in return.
 ```
 
-## Autres langues
+## Other languages
 
-Rédiger la version de la langue avec un locuteur natif ou un agent de traduction auquel on donne la
-consigne : ton poli et court, une seule demande, aucune contrepartie, pas de formule commerciale. Les
-formules de politesse varient fortement (japonais, coréen : registre formel obligatoire; allemand :
-"Sehr geehrte/r" par défaut, "Hallo" si le site est informel). Ne pas envoyer d'e-mail dans une langue
-que l'expéditeur ne peut pas continuer à écrire si l'auteur répond.
+Write the version in the target language with a native speaker, or with a translation agent given the instruction:
+polite and short tone, a single request, no compensation, no sales phrasing. Politeness formulas vary a lot (Japanese
+and Korean: a formal register is mandatory; German: "Sehr geehrte/r" by default, "Hallo" if the site is informal). Do
+not send an e-mail in a language the sender cannot keep writing in if the author replies.
 
-## Ce qu'il ne faut pas faire
+## What not to do
 
-- Envoyer le même message à des dizaines de blogs en changeant seulement le titre.
-- Proposer un échange de liens, un article sponsorisé, un code de réduction ou un compte gratuit en
-  échange de la mention.
-- Se faire passer pour un utilisateur ou un lecteur : l'expéditeur dit qu'il édite le produit.
-- Relancer plus d'une fois, ou répondre à un refus autrement que par un remerciement.
-- Écrire à un auteur dont l'article compare des produits sans mentionner qu'il est affilié, sans avoir
-  lu les règles de son site (certains ne prennent que des partenaires rémunérés : le dire, ne pas
-  insister).
+- Sending the same message to dozens of blogs, changing only the title.
+- Offering a link exchange, a sponsored article, a discount code or a free account in exchange for the mention.
+- Posing as a user or a reader: the sender says they publish the product.
+- Following up more than once, or answering a refusal with anything other than thanks.
+- Writing to an author whose article compares products, without checking whether they are affiliated, and without
+  having read the rules of their site (some only accept paid partners: say so, do not insist).

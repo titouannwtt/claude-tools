@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""Analyse du design d'un site avec Playwright : captures responsives, palette, typographie, espacements.
+"""Design analysis of a site with Playwright: responsive screenshots, palette, typography, spacing.
 
-Commandes :
+Commands:
   analyze <url> [--out D] [--widths 375,768,1280] [--dark] [--use-proxy]
-      écrit dans D : shot-<largeur>.png, design.json (mesures complètes), summary.md (synthèse à lire)
-  doctor     vérifie Playwright et le navigateur Chromium
+      writes into D: shot-<width>.png, design.json (full measurements), summary.md (summary to read)
+  doctor     checks Playwright and the Chromium browser
 
-Le script charge la page dans un vrai navigateur (le JavaScript de la page s'exécute) puis mesure les styles
-calculés des éléments visibles : le résultat décrit ce qui s'affiche, pas ce qui est écrit dans les feuilles de style.
-Dépendances : playwright (pip) et `playwright install chromium`. Sur le Mac, bascule automatique vers l'environnement
-~/.venvs/site-design s'il existe. Proxy : seulement avec --use-proxy (clé IPROYAL_RESIDENTIAL_URL de local.env).
+The script loads the page in a real browser (the page's JavaScript runs) then measures the computed styles
+of the visible elements: the result describes what is displayed, not what is written in the stylesheets.
+Dependencies: playwright (pip) and `playwright install chromium`. On the Mac, it automatically switches to the
+~/.venvs/site-design environment if it exists. Proxy: only with --use-proxy (IPROYAL_RESIDENTIAL_URL key of local.env).
 
-Sortie : JSON sur stdout. Codes : 0 succès ; 1 erreur inattendue ; 2 URL invalide ; 4 page bloquée (403, 429) ;
-5 dépendance manquante ; 7 page injoignable.
+Output: JSON on stdout. Codes: 0 success; 1 unexpected error; 2 invalid URL; 4 page blocked (403, 429);
+5 missing dependency; 7 page unreachable.
 Python 3.9 compatible.
 """
 import argparse
@@ -79,7 +79,7 @@ EXTRACT_JS = r"""
         variables[name] = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     } else if (rule.cssRules) walk(rule.cssRules);
   } };
-  for (const sheet of Array.from(document.styleSheets)) { try { walk(sheet.cssRules); } catch (e) { /* feuille tierce */ } }
+  for (const sheet of Array.from(document.styleSheets)) { try { walk(sheet.cssRules); } catch (e) { /* third-party sheet */ } }
   const metaContent = n => { const m = document.querySelector('meta[name="' + n + '"], meta[property="' + n + '"]');
     return m ? m.content : null; };
   const icon = document.querySelector('link[rel~="icon"]');
@@ -109,7 +109,7 @@ class Failure(Exception):
 
 
 def to_hex(value):
-    """'rgb(10, 20, 30)' -> '#0a141e' ; avec transparence : '#0a141e80' ; autre valeur : inchangée."""
+    """'rgb(10, 20, 30)' -> '#0a141e'; with transparency: '#0a141e80'; any other value: unchanged."""
     match = COLOR_RE.search(value or "")
     if not match:
         return value
@@ -121,7 +121,7 @@ def to_hex(value):
 
 
 def top(counter, limit=10, convert=None):
-    """[{value, count}] triés par fréquence décroissante ; regroupe les valeurs identiques après conversion."""
+    """[{value, count}] sorted by decreasing frequency; merges identical values after conversion."""
     merged = {}
     for key, number in counter.items():
         label = convert(key) if convert else key
@@ -135,7 +135,7 @@ def first_family(stack):
 
 
 def summarize(raw):
-    """Données brutes du navigateur -> structure lisible (palette en hex, polices, échelle de tailles)."""
+    """Raw browser data -> readable structure (hex palette, fonts, size scale)."""
     sizes = sorted(raw["sizes"].items(), key=lambda item: float(item[0].replace("px", "")))
     families = {}
     for stack, number in raw["families"].items():
@@ -169,50 +169,50 @@ def summarize(raw):
 
 
 def render_markdown(url, summary, shots, overflow):
-    lines = ["# Design de %s" % url, ""]
+    lines = ["# Design of %s" % url, ""]
     meta = summary["meta"]
-    lines += ["- Titre : %s" % meta.get("title"), "- Langue : %s" % meta.get("lang"),
-              "- Couleur de thème : %s" % meta.get("themeColor"),
-              "- Éléments visibles analysés : %d (flex %d, grid %d)" % (
+    lines += ["- Title: %s" % meta.get("title"), "- Language: %s" % meta.get("lang"),
+              "- Theme color: %s" % meta.get("themeColor"),
+              "- Visible elements analyzed: %d (flex %d, grid %d)" % (
                   summary["counts"]["elements"], summary["counts"]["flex"], summary["counts"]["grid"]),
-              "- Images sans texte alternatif : %d sur %d" % (
+              "- Images without alt text: %d of %d" % (
                   summary["counts"]["imagesWithoutAlt"], summary["counts"]["images"]), ""]
 
     def row(items):
-        return ", ".join("%s (%d)" % (i["value"], i["count"]) for i in items) or "aucune"
-    lines += ["## Palette", "- Texte : " + row(summary["palette"]["text"]),
-              "- Fonds : " + row(summary["palette"]["backgrounds"]),
-              "- Bordures : " + row(summary["palette"]["borders"]), ""]
+        return ", ".join("%s (%d)" % (i["value"], i["count"]) for i in items) or "none"
+    lines += ["## Palette", "- Text: " + row(summary["palette"]["text"]),
+              "- Backgrounds: " + row(summary["palette"]["backgrounds"]),
+              "- Borders: " + row(summary["palette"]["borders"]), ""]
     typo = summary["typography"]
-    lines += ["## Typographie", "- Familles : " + row(typo["families"]),
-              "- Tailles (px, du plus petit au plus grand) : " + row(typo["sizes"]),
-              "- Polices chargées : " + (", ".join(typo["fonts_loaded"]) or "aucune (polices système)"), ""]
+    lines += ["## Typography", "- Families: " + row(typo["families"]),
+              "- Sizes (px, smallest to largest): " + row(typo["sizes"]),
+              "- Loaded fonts: " + (", ".join(typo["fonts_loaded"]) or "none (system fonts)"), ""]
     for sel, style in typo["samples"].items():
-        lines.append("- `%s` : %s %s/%s, graisse %s, couleur %s" % (
+        lines.append("- `%s`: %s %s/%s, weight %s, color %s" % (
             sel, first_family(style["fontFamily"]), style["fontSize"], style["lineHeight"], style["fontWeight"],
             style["color"]))
-    lines += ["", "## Espacements, formes",
-              "- Espacements les plus fréquents : " + row(summary["spacing"]),
-              "- Rayons de bordure : " + row(summary["radii"]),
-              "- Ombres : " + row(summary["shadows"]), ""]
+    lines += ["", "## Spacing, shapes",
+              "- Most frequent spacings: " + row(summary["spacing"]),
+              "- Border radii: " + row(summary["radii"]),
+              "- Shadows: " + row(summary["shadows"]), ""]
     variables = summary["css_variables"]
-    lines += ["## Variables CSS (%d)" % len(variables)]
-    lines += ["- `%s` : %s" % (name, value) for name, value in list(variables.items())[:40]] or ["- aucune"]
+    lines += ["## CSS variables (%d)" % len(variables)]
+    lines += ["- `%s`: %s" % (name, value) for name, value in list(variables.items())[:40]] or ["- none"]
     lines += ["", "## Responsive",
-              "- Points de rupture dans le CSS : " + (", ".join(summary["breakpoints"]) or "aucun trouvé"),
-              "- Mode sombre prévu dans le CSS : %s" % ("oui" if summary["dark_mode_in_css"] else "non")]
-    lines += ["- Défilement horizontal à %s px : %s" % (width, "OUI (défaut)" if bad else "non")
+              "- Breakpoints in the CSS: " + (", ".join(summary["breakpoints"]) or "none found"),
+              "- Dark mode provided in the CSS: %s" % ("yes" if summary["dark_mode_in_css"] else "no")]
+    lines += ["- Horizontal scroll at %s px: %s" % (width, "YES (defect)" if bad else "no")
               for width, bad in overflow.items()]
-    lines += ["", "## Structure des titres"] + ["- " + h for h in summary["headings"]]
-    lines += ["", "## Captures"] + ["- %s" % shot for shot in shots]
+    lines += ["", "## Heading structure"] + ["- " + h for h in summary["headings"]]
+    lines += ["", "## Screenshots"] + ["- %s" % shot for shot in shots]
     return "\n".join(lines) + "\n"
 
 
 def parse_proxy(url):
-    """URL de proxy -> dict accepté par Playwright (server, username, password)."""
+    """Proxy URL -> dict accepted by Playwright (server, username, password)."""
     parsed = urlparse(url)
     if not parsed.hostname:
-        raise Failure(EXIT_INVALID, "adresse de proxy illisible")
+        raise Failure(EXIT_INVALID, "unreadable proxy address")
     proxy = {"server": "%s://%s:%s" % (parsed.scheme or "http", parsed.hostname, parsed.port or 80)}
     if parsed.username:
         proxy["username"] = parsed.username
@@ -228,14 +228,14 @@ def load_playwright():
         if VENV_PYTHON.exists() and Path(sys.prefix) != VENV_PYTHON.parents[1] \
                 and not os.environ.get("SITE_DESIGN_NO_REEXEC"):
             os.execv(str(VENV_PYTHON), [str(VENV_PYTHON)] + sys.argv)
-        raise Failure(EXIT_MISSING, "playwright introuvable : python3 -m venv ~/.venvs/site-design && "
+        raise Failure(EXIT_MISSING, "playwright not found: python3 -m venv ~/.venvs/site-design && "
                                     "~/.venvs/site-design/bin/pip install playwright && "
                                     "~/.venvs/site-design/bin/playwright install chromium")
 
 
 def analyze(url, out_dir, widths, dark, proxy, local_env=None):
     if urlparse(url).scheme not in ("http", "https") or not urlparse(url).netloc:
-        raise Failure(EXIT_INVALID, "URL http(s) attendue : %s" % url)
+        raise Failure(EXIT_INVALID, "http(s) URL expected: %s" % url)
     sync_playwright = load_playwright()
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -245,7 +245,7 @@ def analyze(url, out_dir, widths, dark, proxy, local_env=None):
             browser = pw.chromium.launch(proxy=parse_proxy(proxy) if proxy else None)
         except Exception as error:  # noqa: BLE001
             if "Executable doesn't exist" in str(error):
-                raise Failure(EXIT_MISSING, "Chromium absent : playwright install chromium")
+                raise Failure(EXIT_MISSING, "Chromium missing: playwright install chromium")
             raise
         try:
             for width in widths:
@@ -255,9 +255,9 @@ def analyze(url, out_dir, widths, dark, proxy, local_env=None):
                 try:
                     response = page.goto(url, wait_until="load", timeout=30000)
                 except Exception as error:  # noqa: BLE001
-                    raise Failure(EXIT_NETWORK, "page injoignable : %s" % str(error).splitlines()[0])
+                    raise Failure(EXIT_NETWORK, "page unreachable: %s" % str(error).splitlines()[0])
                 if response is not None and response.status in (403, 429):
-                    raise Failure(EXIT_BLOCKED, "page bloquée : HTTP %d" % response.status)
+                    raise Failure(EXIT_BLOCKED, "page blocked: HTTP %d" % response.status)
                 try:
                     page.wait_for_load_state("networkidle", timeout=5000)
                 except Exception:  # noqa: BLE001
@@ -304,7 +304,7 @@ def main(argv=None):
     item.add_argument("url")
     item.add_argument("--out", default="./site-design")
     item.add_argument("--widths", default="375,768,1280")
-    item.add_argument("--dark", action="store_true", help="capture aussi la plus grande largeur en mode sombre")
+    item.add_argument("--dark", action="store_true", help="also capture the largest width in dark mode")
     item.add_argument("--use-proxy", action="store_true")
     item.add_argument("--local-env", default=None)
     sub.add_parser("doctor")
@@ -316,18 +316,18 @@ def main(argv=None):
             try:
                 widths = [int(w) for w in args.widths.split(",") if w.strip()]
             except ValueError:
-                raise Failure(EXIT_INVALID, "--widths attend des entiers séparés par des virgules")
+                raise Failure(EXIT_INVALID, "--widths expects comma-separated integers")
             proxy = None
             if args.use_proxy:
                 proxy = cttools.configured_proxy(args.local_env)
                 if not proxy:
-                    raise Failure(EXIT_MISSING, "IPROYAL_RESIDENTIAL_URL absent de local.env : proxy impossible")
+                    raise Failure(EXIT_MISSING, "IPROYAL_RESIDENTIAL_URL missing from local.env: proxy unavailable")
             result = analyze(args.url, args.out, sorted(widths), args.dark, proxy, args.local_env)
     except Failure as failure:
         print(json.dumps({"error": failure.message}, ensure_ascii=False))
         return failure.code
     except Exception as error:  # noqa: BLE001
-        print(json.dumps({"error": "erreur inattendue : %s" % error}, ensure_ascii=False))
+        print(json.dumps({"error": "unexpected error: %s" % error}, ensure_ascii=False))
         return EXIT_UNEXPECTED
     print(json.dumps(result, ensure_ascii=False))
     return EXIT_OK

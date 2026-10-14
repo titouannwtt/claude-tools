@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""gsc_submit.py : soumet des sitemaps à Google Search Console (API Webmasters v3).
+"""gsc_submit.py: submits sitemaps to Google Search Console (Webmasters API v3).
 
-Bibliothèque standard + `openssl` (signature RS256 du JWT). Aucun secret dans le dépôt :
+Standard library + `openssl` (RS256 signature of the JWT). No secret in the repo:
 
-    GSC_SERVICE_ACCOUNT=/chemin/vers/compte-de-service.json   (valeur locale, dans local.env)
-    python3 gsc_submit.py --property sc-domain:exemple.org \
-        --sitemap https://exemple.org/sitemap-index.xml [--sitemap ...] [--dry-run]
+    GSC_SERVICE_ACCOUNT=/path/to/service-account.json   (local value, in local.env)
+    python3 gsc_submit.py --property sc-domain:example.org \
+        --sitemap https://example.org/sitemap-index.xml [--sitemap ...] [--dry-run]
 
-Le compte de service doit être ajouté comme propriétaire de la propriété Search Console. Scope
-`webmasters` (écriture) : `webmasters.readonly` ne permet pas de soumettre.
-Codes de sortie : 0 succès, 2 arguments ou configuration invalides, 4 réseau, 1 échec API.
-N'utilise PAS l'API Google Indexing : réservée aux offres d'emploi et aux diffusions en direct.
+The service account must be added as an owner of the Search Console property. Scope
+`webmasters` (write): `webmasters.readonly` cannot submit.
+Exit codes: 0 success, 2 invalid arguments or configuration, 4 network, 1 API failure.
+Does NOT use the Google Indexing API: it is reserved for job postings and live streams.
 """
 import argparse
 import base64
@@ -64,7 +64,7 @@ def http(method: str, url: str, headers=None, data=None):
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--property", required=True, help="ex. sc-domain:exemple.org ou https://exemple.org/")
+    ap.add_argument("--property", required=True, help="e.g. sc-domain:example.org or https://example.org/")
     ap.add_argument("--sitemap", action="append", required=True)
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args(argv)
@@ -74,7 +74,7 @@ def main(argv=None) -> int:
         return 0
     path = os.environ.get("GSC_SERVICE_ACCOUNT")
     if not path or not os.path.isfile(path):
-        print(json.dumps({"error": "GSC_SERVICE_ACCOUNT absent ou introuvable (voir local.env)"}))
+        print(json.dumps({"error": "GSC_SERVICE_ACCOUNT missing or not found (see local.env)"}))
         return 2
     with open(path, encoding="utf-8") as fh:
         sa = json.load(fh)
@@ -84,10 +84,10 @@ def main(argv=None) -> int:
     try:
         st, raw = http("POST", sa["token_uri"], {"Content-Type": "application/x-www-form-urlencoded"}, body)
     except urllib.error.URLError as e:
-        print(json.dumps({"error": f"réseau : {e}"}))
+        print(json.dumps({"error": f"network: {e}"}))
         return 4
     if st != 200:
-        print(json.dumps({"error": "jeton refusé", "status": st, "detail": raw.decode()[:200]}))
+        print(json.dumps({"error": "token rejected", "status": st, "detail": raw.decode()[:200]}))
         return 1
     auth = {"Authorization": "Bearer " + json.loads(raw)["access_token"]}
     site = urllib.parse.quote(args.property, safe="")

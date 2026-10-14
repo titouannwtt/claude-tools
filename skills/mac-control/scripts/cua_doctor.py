@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Diagnostic de cua-driver (pilotage du Mac) : binaire, démon, permissions, serveur MCP déclaré.
+"""cua-driver diagnostic (Mac control): binary, daemon, permissions, declared MCP server.
 
-Usage : cua_doctor.py        Sortie : JSON sur stdout, lecture seule (aucune action sur l'écran).
-Codes de sortie : 0 tout est prêt ; 1 erreur inattendue ; 5 quelque chose manque (voir « todo »).
+Usage: cua_doctor.py        Output: JSON on stdout, read-only (no action on the screen).
+Exit codes: 0 everything is ready; 1 unexpected error; 5 something is missing (see "todo").
 Python 3.9 compatible.
 """
 import json
@@ -23,7 +23,7 @@ def run(command):
 
 
 def parse_permissions(text):
-    """JSON de `cua-driver permissions status --json` -> (accessibilité, enregistrement de l'écran) ou None."""
+    """JSON de `cua-driver permissions status --json` -> (accessibility, screen recording) or None."""
     try:
         data = json.loads(text)
     except (TypeError, ValueError):
@@ -32,7 +32,7 @@ def parse_permissions(text):
 
 
 def parse_status(text):
-    """Texte de `cua-driver status` -> {running, mode}."""
+    """Text of `cua-driver status` -> {running, mode}."""
     text = text or ""
     mode = None
     for line in text.splitlines():
@@ -54,7 +54,7 @@ def diagnose(config_path=None):
     binary = shutil.which("cua-driver")
     report = {"binary": bool(binary), "todo": []}
     if not binary:
-        report["todo"].append("installer cua-driver (https://github.com/trycua/cua, dossier cua-driver)")
+        report["todo"].append("install cua-driver (https://github.com/trycua/cua, cua-driver folder)")
         return report
     version = run([binary, "--version"]) or run([binary, "--help"]) or ""
     report["version"] = (version.splitlines() or ["?"])[0].strip()
@@ -63,13 +63,13 @@ def diagnose(config_path=None):
     report["accessibility"], report["screen_recording"] = perms if perms else (None, None)
     report["mcp_declared"] = mcp_declared(config_path)
     if not report["running"]:
-        report["todo"].append("démon arrêté : il démarre au premier appel d'un outil cua-driver, ou `cua-driver serve`")
+        report["todo"].append("daemon stopped: it starts on the first call of a cua-driver tool, or with `cua-driver serve`")
     if perms and not perms[0]:
-        report["todo"].append("accorder Accessibilité : `cua-driver permissions grant`")
+        report["todo"].append("grant Accessibility: `cua-driver permissions grant`")
     if perms and not perms[1]:
-        report["todo"].append("accorder Enregistrement de l'écran : `cua-driver permissions grant`")
+        report["todo"].append("grant Screen Recording: `cua-driver permissions grant`")
     if not report["mcp_declared"]:
-        report["todo"].append("déclarer le serveur MCP : claude mcp add --scope user cua-driver -- cua-driver mcp")
+        report["todo"].append("declare the MCP server: claude mcp add --scope user cua-driver -- cua-driver mcp")
     return report
 
 
@@ -77,7 +77,7 @@ def main():
     try:
         report = diagnose()
     except Exception as error:  # noqa: BLE001
-        print(json.dumps({"error": "erreur inattendue : %s" % error}, ensure_ascii=False))
+        print(json.dumps({"error": "unexpected error: %s" % error}, ensure_ascii=False))
         return EXIT_UNEXPECTED
     print(json.dumps(report, ensure_ascii=False))
     return EXIT_MISSING if report["todo"] else EXIT_OK

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""indexnow.py : notifie Bing, Yandex, Naver et Seznam (et donc la recherche de ChatGPT, qui s'appuie
-sur Bing) des URL nouvelles ou modifiées. Google n'utilise pas IndexNow : pour lui, sitemap + lastmod.
+"""indexnow.py: notifies Bing, Yandex, Naver and Seznam (and therefore ChatGPT search, which relies
+on Bing) of new or modified URLs. Google does not use IndexNow: for it, sitemap + lastmod.
 
-    INDEXNOW_KEY=<clé de 8 à 128 caractères hexadécimaux>   (valeur locale, dans local.env)
-    python3 indexnow.py --host exemple.org --sitemap https://exemple.org/sitemap-0.xml [--dry-run]
-    python3 indexnow.py --host exemple.org --url https://exemple.org/a/ --url https://exemple.org/b/
+    INDEXNOW_KEY=<key of 8 to 128 hexadecimal characters>   (local value, in local.env)
+    python3 indexnow.py --host example.org --sitemap https://example.org/sitemap-0.xml [--dry-run]
+    python3 indexnow.py --host example.org --url https://example.org/a/ --url https://example.org/b/
 
-Prérequis : le fichier https://<host>/<clé>.txt doit contenir exactement la clé (le script le vérifie).
-Codes de sortie : 0 succès (HTTP 200 ou 202), 2 configuration invalide, 4 réseau, 1 refus.
+Prerequisite: the file https://<host>/<key>.txt must contain exactly the key (the script checks it).
+Exit codes: 0 success (HTTP 200 or 202), 2 invalid configuration, 4 network, 1 rejected.
 """
 import argparse
 import json
@@ -38,7 +38,7 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     key = os.environ.get("INDEXNOW_KEY", "")
     if not re.fullmatch(r"[A-Za-z0-9-]{8,128}", key):
-        print(json.dumps({"error": "INDEXNOW_KEY absente ou invalide (voir local.env)"}))
+        print(json.dumps({"error": "INDEXNOW_KEY missing or invalid (see local.env)"}))
         return 2
     try:
         urls = list(args.url)
@@ -46,15 +46,15 @@ def main(argv=None) -> int:
             urls += urls_from_sitemap(get(sm))
         urls = sorted({u for u in urls if re.match(r"https?://" + re.escape(args.host) + r"[/:]", u + "/")})
         if not urls:
-            print(json.dumps({"error": "aucune URL à soumettre pour cet hôte"}))
+            print(json.dumps({"error": "no URL to submit for this host"}))
             return 2
         key_url = f"https://{args.host}/{key}.txt"
         try:
             if get(key_url).strip() != key:
-                print(json.dumps({"error": f"{key_url} ne contient pas la clé"}))
+                print(json.dumps({"error": f"{key_url} does not contain the key"}))
                 return 2
         except urllib.error.HTTPError as e:
-            print(json.dumps({"error": f"{key_url} répond {e.code} : publier le fichier de clé d'abord"}))
+            print(json.dumps({"error": f"{key_url} returns {e.code}: publish the key file first"}))
             return 2
         if args.dry_run:
             print(json.dumps({"dry_run": True, "urls": len(urls), "sample": urls[:3]}))
@@ -78,7 +78,7 @@ def main(argv=None) -> int:
         print(json.dumps({"submitted": sent, "total": len(urls)}))
         return code
     except urllib.error.URLError as e:
-        print(json.dumps({"error": f"réseau : {e}"}))
+        print(json.dumps({"error": f"network: {e}"}))
         return 4
 
 

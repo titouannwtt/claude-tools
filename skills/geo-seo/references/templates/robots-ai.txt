@@ -1,37 +1,37 @@
-# robots.txt modèle : moteurs de recherche et assistants IA accueillis, application (SPA) non indexée,
-# sitemaps déclarés et lisibles par tous les robots.
+# Template robots.txt: search engines and AI assistants welcome, application (SPA) not indexed,
+# sitemaps declared and readable by all robots.
 #
-# Paramètres : [DOMAINE]; [APP] = chemin de l'application client-only (ex. /app/); [CONVERT] = chemins
-# de l'application qui doivent rester indexables (ex. pages pré-rendues de conversion), à supprimer s'il
-# n'y en a pas; [SITEMAP_APP] = sitemap qui vit sous le chemin interdit.
+# Parameters: [DOMAIN]; [APP] = path of the client-only application (e.g. /app/); [CONVERT] = application paths
+# that must stay indexable (e.g. pre-rendered conversion pages), to delete if there are none; [SITEMAP_APP] =
+# sitemap that lives under the forbidden path.
 #
-# POURQUOI CE FICHIER EST FAIT AINSI (leçons de la campagne) :
+# WHY THIS FILE IS BUILT THIS WAY (lessons from the campaign):
 #
-# 1. L'EXCEPTION DU SITEMAP. Un sitemap qui vit sous un chemin interdit est lui-même interdit : avec
-#    "Disallow: [APP]" seul, Google ne pouvait pas lire [SITEMAP_APP] (erreur Search Console pendant
-#    plusieurs semaines). Une règle "Allow" plus LONGUE l'emporte : "Allow: [SITEMAP_APP]" corrige. Elle
-#    doit figurer dans CHAQUE bloc User-agent, car un robot nommé ignore le bloc générique "*".
+# 1. THE SITEMAP EXCEPTION. A sitemap that lives under a forbidden path is itself forbidden: with
+#    "Disallow: [APP]" alone, Google could not read [SITEMAP_APP] (Search Console error for several weeks).
+#    A LONGER "Allow" rule wins: "Allow: [SITEMAP_APP]" fixes it. It must appear in EACH User-agent block,
+#    because a named robot ignores the generic "*" block.
 #
-# 2. L'ORDRE. Les "Allow" sont écrits AVANT les "Disallow" pour la lisibilité (la règle la plus longue
-#    gagne, pas l'ordre).
+# 2. ORDER. The "Allow" lines are written BEFORE the "Disallow" lines for readability (the longest rule wins,
+#    not the order).
 #
-# 3. DISALLOW ET NOINDEX. Un "Disallow" empêche le robot de LIRE la page, donc de lire un en-tête
-#    "X-Robots-Tag: noindex" : il ne désindexe rien et peut laisser l'URL nue dans l'index. Pour retirer une
-#    page de l'index, servir "noindex" ET laisser le robot la récupérer (pas de Disallow sur ce chemin).
+# 3. DISALLOW AND NOINDEX. A "Disallow" stops the robot from READING the page, and so from reading an
+#    "X-Robots-Tag: noindex" header: it deindexes nothing and may leave the bare URL in the index. To remove a
+#    page from the index, serve "noindex" AND let the robot fetch it (no Disallow on that path).
 #
-# 4. LES ROBOTS IA. Trois familles par éditeur : robot d'entraînement (GPTBot, ClaudeBot, CCBot,
-#    Google-Extended, Applebot-Extended), robot de recherche (OAI-SearchBot, Claude-SearchBot,
-#    PerplexityBot, Bingbot) et robot "utilisateur" déclenché par une question (ChatGPT-User, Claude-User,
-#    Perplexity-User, DuckAssistBot, MistralAI-User). Pour être cité, il faut au moins autoriser les robots
-#    de recherche et "utilisateur". Autoriser l'entraînement est un choix de l'éditeur (mémoire des modèles,
-#    effet lent); le choix par défaut de la campagne : tout autoriser.
+# 4. AI ROBOTS. Three families per publisher: training robot (GPTBot, ClaudeBot, CCBot,
+#    Google-Extended, Applebot-Extended), search robot (OAI-SearchBot, Claude-SearchBot,
+#    PerplexityBot, Bingbot) and "user" robot triggered by a question (ChatGPT-User, Claude-User,
+#    Perplexity-User, DuckAssistBot, MistralAI-User). To be cited, you must at least allow the search
+#    and "user" robots. Allowing training is the publisher's choice (model memory, slow effect);
+#    the campaign's default choice: allow everything.
 #
-# 5. BYTESPIDER exclu volontairement dans la campagne (pas de valeur, gros volume) : à décider.
+# 5. BYTESPIDER deliberately excluded in the campaign (no value, high volume): to be decided.
 #
-# 6. Un CDN ne doit pas réécrire ce fichier : comparer à l'octet près le fichier en ligne et le fichier du
-#    dépôt après chaque déploiement.
+# 6. A CDN must not rewrite this file: compare the live file and the repository file byte for byte after each
+#    deployment.
 #
-# 7. Chaque règle non évidente est commentée AVEC SA DATE, pour que le prochain agent sache pourquoi.
+# 7. Each non-obvious rule is commented WITH ITS DATE, so that the next agent knows why.
 
 User-agent: *
 Allow: /
@@ -42,7 +42,7 @@ Disallow: /api/
 Disallow: /auth/
 Disallow: /signin
 
-# ── Assistants IA et moteurs de réponse : accueillis explicitement ──
+# ── AI assistants and answer engines: explicitly welcomed ──
 
 User-agent: GPTBot
 Allow: /
@@ -206,20 +206,20 @@ Disallow: /api/
 Disallow: /auth/
 Disallow: /signin
 
-# Googlebot, Bingbot et les autres moteurs sont couverts par le bloc "*" ci-dessus (Bingbot a son bloc
-# explicite parce que ChatGPT en recherche et Copilot s'appuient sur l'index Bing).
+# Googlebot, Bingbot and the other engines are covered by the "*" block above (Bingbot has its own explicit block
+# because ChatGPT search and Copilot rely on the Bing index).
 
-# Optionnel (décision à prendre) : exclure un robot sans valeur pour le site.
+# Optional (decision to take): exclude a robot with no value for the site.
 # User-agent: Bytespider
 # Disallow: /
 
-Sitemap: https://[DOMAINE]/sitemap-index.xml
-Sitemap: https://[DOMAINE][SITEMAP_APP]
+Sitemap: https://[DOMAIN]/sitemap-index.xml
+Sitemap: https://[DOMAIN][SITEMAP_APP]
 
-# Contrôle après chaque déploiement (voir 09-procedure-autonome.md, phase 6) :
+# Check after each deployment (see 09-autonomous-procedure.md, phase 6):
 #   for UA in Googlebot Bingbot GPTBot OAI-SearchBot ChatGPT-User ClaudeBot PerplexityBot; do
-#     curl -s -o /dev/null -w "$UA %{http_code}\n" -A "$UA" https://[DOMAINE]/robots.txt
-#     curl -s -o /dev/null -w "$UA %{http_code}\n" -A "$UA" https://[DOMAINE][SITEMAP_APP]
+#     curl -s -o /dev/null -w "$UA %{http_code}\n" -A "$UA" https://[DOMAIN]/robots.txt
+#     curl -s -o /dev/null -w "$UA %{http_code}\n" -A "$UA" https://[DOMAIN][SITEMAP_APP]
 #   done
-# Attendu : 200 partout. Un 403 sur le sitemap vient du serveur ou du pare-feu (filtre anti-bots),
-# pas de robots.txt : voir 08-pieges-et-incidents.md, B6.
+# Expected: 200 everywhere. A 403 on the sitemap comes from the server or the firewall (anti-bot filter), not from
+# robots.txt: see 08-pitfalls-and-incidents.md, B6.

@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Transcription de vidéos YouTube.
+"""YouTube video transcription.
 
-Voie A (sous-titres existants, sans téléchargement de la vidéo) : `subs`.
-Voie B (audio puis transcription locale) : `audio`, et `transcribe` pour un fichier audio déjà présent.
-Diagnostic des dépendances : `doctor`.
+Route A (existing subtitles, no video download): `subs`.
+Route B (audio then local transcription): `audio`, and `transcribe` for an audio file already present.
+Dependency diagnostic: `doctor`.
 
-Dépendances : yt-dlp (obligatoire), ffmpeg (voie B), faster-whisper (transcription locale).
-Proxy : uniquement sur demande explicite (`--use-proxy`), valeur lue dans local.env
-(clé IPROYAL_RESIDENTIAL_URL, ou IPROYAL_PROXY_URL en repli).
+Dependencies: yt-dlp (required), ffmpeg (route B), faster-whisper (local transcription).
+Proxy: only on explicit request (`--use-proxy`), value read from local.env
+(key IPROYAL_RESIDENTIAL_URL, or IPROYAL_PROXY_URL as fallback).
 
-Sortie : toujours du JSON sur stdout. Codes de sortie :
-  0 succès ; 1 erreur inattendue ; 2 entrée invalide ; 3 aucun sous-titre disponible ;
-  4 téléchargement bloqué (à réessayer avec --use-proxy) ; 5 dépendance manquante.
+Output: always JSON on stdout. Exit codes:
+  0 success; 1 unexpected error; 2 invalid input; 3 no subtitles available;
+  4 download blocked (retry with --use-proxy); 5 missing dependency.
 Python 3.9 compatible.
 """
 import argparse
@@ -47,11 +47,11 @@ def video_id_from_url(value):
             return match.group(1)
     if VIDEO_ID_RE.match(value):
         return value
-    raise Failure(EXIT_INVALID, "URL YouTube non reconnue : %s" % value)
+    raise Failure(EXIT_INVALID, "YouTube URL not recognized: %s" % value)
 
 
 def load_local_env(explicit=None):
-    """Lit local.env (clés KEY=VALUE) : chemin explicite, variable CLAUDE_TOOLS_LOCAL, ou racine du dépôt."""
+    """Read local.env (KEY=VALUE keys): explicit path, CLAUDE_TOOLS_LOCAL variable, or repo root."""
     candidates = [explicit, os.environ.get("CLAUDE_TOOLS_LOCAL"),
                   str(Path(__file__).resolve().parents[3] / "local.env")]
     for candidate in candidates:
@@ -79,7 +79,7 @@ def resolve_proxy(use_proxy, explicit_env=None):
         return None
     proxy = configured_proxy(explicit_env)
     if not proxy:
-        raise Failure(EXIT_MISSING, "IPROYAL_RESIDENTIAL_URL absent de local.env : impossible d'utiliser le proxy")
+        raise Failure(EXIT_MISSING, "IPROYAL_RESIDENTIAL_URL missing from local.env: cannot use the proxy")
     return proxy
 
 
@@ -90,7 +90,7 @@ def ytdlp_command():
     try:
         import yt_dlp  # noqa: F401
     except ImportError:
-        raise Failure(EXIT_MISSING, "yt-dlp introuvable : pip install -U yt-dlp")
+        raise Failure(EXIT_MISSING, "yt-dlp not found: pip install -U yt-dlp")
     return [sys.executable, "-m", "yt_dlp"]
 
 
@@ -101,13 +101,13 @@ def run_ytdlp(args, proxy=None):
     try:
         result = subprocess.run(command + args, capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
-        raise Failure(EXIT_UNEXPECTED, "yt-dlp : délai dépassé (%d s)" % TIMEOUT_SECONDS)
+        raise Failure(EXIT_UNEXPECTED, "yt-dlp: timed out (%d s)" % TIMEOUT_SECONDS)
     output = (result.stdout or "") + (result.stderr or "")
     if result.returncode != 0:
         if any(marker in output for marker in BLOCK_MARKERS):
             first = next((line for line in output.splitlines() if "ERROR" in line), output.strip()[:200])
-            raise Failure(EXIT_BLOCKED, "téléchargement bloqué : %s" % first.strip())
-        raise Failure(EXIT_UNEXPECTED, "yt-dlp a échoué : %s" % output.strip()[-400:])
+            raise Failure(EXIT_BLOCKED, "download blocked: %s" % first.strip())
+        raise Failure(EXIT_UNEXPECTED, "yt-dlp failed: %s" % output.strip()[-400:])
     return output
 
 
@@ -117,7 +117,7 @@ def _seconds(hours, minutes, seconds, millis):
 
 
 def parse_vtt(text):
-    """Segments {start, end, text} d'un fichier WebVTT ; les répétitions des sous-titres automatiques sont fusionnées."""
+    """Segments {start, end, text} of a WebVTT file; repetitions of automatic subtitles are merged."""
     segments = []
     lines = text.splitlines()
     index = 0
@@ -180,7 +180,7 @@ def fetch_subs(url, languages, out_dir, proxy=None):
                "https://www.youtube.com/watch?v=" + video_id], proxy)
     subtitle, lang = pick_subtitle_file(out_dir, video_id, languages)
     if subtitle is None:
-        raise Failure(EXIT_NO_SUBS, "aucun sous-titre pour %s dans %s : utiliser la commande audio"
+        raise Failure(EXIT_NO_SUBS, "no subtitles for %s in %s: use the audio command"
                       % (video_id, ",".join(languages)))
     segments = parse_vtt(subtitle.read_text(encoding="utf-8", errors="replace"))
     txt, js = write_outputs(out_dir, video_id, lang, segments, "subs")
@@ -191,13 +191,13 @@ def fetch_subs(url, languages, out_dir, proxy=None):
 def fetch_audio(url, out_dir, proxy=None):
     video_id = video_id_from_url(url)
     if not shutil.which("ffmpeg"):
-        raise Failure(EXIT_MISSING, "ffmpeg introuvable : requis pour la voie audio")
+        raise Failure(EXIT_MISSING, "ffmpeg not found: required for the audio route")
     out_dir.mkdir(parents=True, exist_ok=True)
     run_ytdlp(["-x", "--audio-format", "mp3", "-o", str(out_dir / "%(id)s.%(ext)s"),
                "https://www.youtube.com/watch?v=" + video_id], proxy)
     audio = out_dir / (video_id + ".mp3")
     if not audio.is_file():
-        raise Failure(EXIT_UNEXPECTED, "audio introuvable après téléchargement : %s" % audio)
+        raise Failure(EXIT_UNEXPECTED, "audio not found after download: %s" % audio)
     return audio
 
 
@@ -205,23 +205,23 @@ VENV_PYTHON = Path.home() / ".venvs" / "video-transcript" / "bin" / "python"
 
 
 def import_whisper():
-    """Importe faster-whisper ; si absent, relance le script avec l'environnement dédié s'il existe."""
+    """Import faster-whisper; if missing, rerun the script with the dedicated environment if it exists."""
     try:
         from faster_whisper import WhisperModel
         return WhisperModel
     except ImportError:
         if VENV_PYTHON.exists() and Path(sys.executable) != VENV_PYTHON:
             os.execv(str(VENV_PYTHON), [str(VENV_PYTHON), str(Path(__file__).resolve())] + sys.argv[1:])
-        raise Failure(EXIT_MISSING, "faster-whisper absent : pip install faster-whisper "
-                      "(ou créer ~/.venvs/video-transcript)")
+        raise Failure(EXIT_MISSING, "faster-whisper missing: pip install faster-whisper "
+                      "(or create ~/.venvs/video-transcript)")
 
 
 def transcribe_file(path, model_name, language):
     WhisperModel = import_whisper()
     model = WhisperModel(model_name, device="auto", compute_type="int8")
     segments, language_found = [], None
-    # Filtre de voix d'abord (évite les hallucinations sur la parole) ; sans filtre si il ne trouve rien
-    # (il supprime entièrement le chant et la musique).
+    # Voice filter first (avoids hallucinations on speech); no filter if it finds nothing
+    # (it removes singing and music entirely).
     for vad in (True, False):
         raw, info = model.transcribe(str(path), language=language or None, vad_filter=vad)
         segments = [{"start": round(s.start, 3), "end": round(s.end, 3), "text": s.text.strip()}
@@ -266,28 +266,28 @@ def dispatch(args):
     if args.cmd == "transcribe":
         path = Path(args.file).expanduser().resolve()
         if not path.is_file():
-            raise Failure(EXIT_INVALID, "fichier audio introuvable : %s" % path)
+            raise Failure(EXIT_INVALID, "audio file not found: %s" % path)
         segments, language = transcribe_file(path, args.model, args.lang)
         txt, js = write_outputs(out_dir, path.stem, language, segments, "local")
         return {"source": path.name, "method": "local", "language": language, "segments": len(segments),
                 "txt": txt, "json": js}
-    raise Failure(EXIT_INVALID, "commande inconnue : %s" % args.cmd)
+    raise Failure(EXIT_INVALID, "unknown command: %s" % args.cmd)
 
 
 def build_parser():
-    parser = argparse.ArgumentParser(description="Transcription de vidéos YouTube (sortie JSON).")
+    parser = argparse.ArgumentParser(description="YouTube video transcription (JSON output).")
     sub = parser.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("doctor", help="vérifie les dépendances")
+    sub.add_parser("doctor", help="check the dependencies")
     for name in ("subs", "audio"):
         item = sub.add_parser(name)
         item.add_argument("url")
         item.add_argument("--out", default="transcripts")
-        item.add_argument("--use-proxy", action="store_true", help="proxy IPRoyal depuis local.env (repli)")
+        item.add_argument("--use-proxy", action="store_true", help="IPRoyal proxy from local.env (fallback)")
         if name == "subs":
-            item.add_argument("--lang", default="fr,en", help="langues par ordre de préférence")
+            item.add_argument("--lang", default="fr,en", help="languages in order of preference")
         else:
-            item.add_argument("--lang", default=None, help="langue de l'audio (ex. fr) ; vide = détection")
-            item.add_argument("--model", default="small", help="modèle faster-whisper (tiny, base, small, medium)")
+            item.add_argument("--lang", default=None, help="audio language (e.g. fr); empty = detection")
+            item.add_argument("--model", default="small", help="faster-whisper model (tiny, base, small, medium)")
     item = sub.add_parser("transcribe")
     item.add_argument("file")
     item.add_argument("--out", default="transcripts")

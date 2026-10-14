@@ -48,18 +48,18 @@ sys.exit(3)
 
 
 class ParsingTest(unittest.TestCase):
-    def test_identifiant_depuis_les_formats_d_url(self):
+    def test_id_from_url_formats(self):
         vid = "dQw4w9WgXcQ"
         for url in ("https://www.youtube.com/watch?v=%s&t=10" % vid, "https://youtu.be/%s" % vid,
                     "https://www.youtube.com/shorts/%s" % vid, vid):
             self.assertEqual(tr.video_id_from_url(url), vid)
 
-    def test_url_invalide(self):
+    def test_invalid_url(self):
         with self.assertRaises(tr.Failure) as ctx:
-            tr.video_id_from_url("https://example.com/pas-une-video")
+            tr.video_id_from_url("https://example.com/not-a-video")
         self.assertEqual(ctx.exception.code, tr.EXIT_INVALID)
 
-    def test_vtt_fusionne_repetitions_et_tags(self):
+    def test_vtt_merges_repeats_and_tags(self):
         segments = tr.parse_vtt(VTT)
         self.assertEqual([s["text"] for s in segments], ["Bonjour le monde", "Fin de la vidéo"])
         self.assertEqual(segments[0]["start"], 1.0)
@@ -67,7 +67,7 @@ class ParsingTest(unittest.TestCase):
         self.assertEqual(segments[1]["start"], 60.5)
         self.assertEqual(segments[1]["end"], 3723.25)
 
-    def test_horodatage_lisible(self):
+    def test_readable_timestamp(self):
         self.assertEqual(tr.fmt_timestamp(3723.9), "01:02:03")
         self.assertEqual(tr.fmt_timestamp(61), "00:01:01")
 
@@ -92,7 +92,7 @@ class CliTest(unittest.TestCase):
         result = subprocess.run([sys.executable, str(SCRIPT)] + list(args), capture_output=True, text=True, env=env)
         return result.returncode, json.loads(result.stdout)
 
-    def test_voie_a_sous_titres_ecrit_txt_et_json(self):
+    def test_route_a_subtitles_writes_txt_and_json(self):
         code, data = self.run_cli("subs", "https://youtu.be/dQw4w9WgXcQ", "--out", str(self.dir / "out"))
         self.assertEqual(code, 0)
         self.assertEqual(data["method"], "subs")
@@ -101,26 +101,26 @@ class CliTest(unittest.TestCase):
         self.assertIn("[00:00:01] Bonjour le monde", txt)
         self.assertTrue(Path(data["json"]).is_file())
 
-    def test_aucun_sous_titre_renvoie_code_3(self):
+    def test_no_subtitles_returns_code_3(self):
         code, data = self.run_cli("subs", "dQw4w9WgXcQ", "--out", str(self.dir / "out"), FAKE_MODE="nosubs")
         self.assertEqual(code, 3)
         self.assertFalse(data["ok"])
-        self.assertIn("commande audio", data["error"])
+        self.assertIn("audio command", data["error"])
 
-    def test_blocage_renvoie_code_4_sans_proxy_automatique(self):
+    def test_block_returns_code_4_without_automatic_proxy(self):
         code, data = self.run_cli("subs", "dQw4w9WgXcQ", "--out", str(self.dir / "out"), FAKE_MODE="blocked")
         self.assertEqual(code, 4)
         self.assertIn("429", data["error"])
 
-    def test_proxy_demande_sans_configuration_renvoie_code_5(self):
+    def test_requested_proxy_without_configuration_returns_code_5(self):
         empty = self.dir / "empty.env"
-        empty.write_text("", encoding="utf-8")  # isole le test du vrai local.env de la machine
+        empty.write_text("", encoding="utf-8")  # isolates the test from the machine's real local.env
         code, data = self.run_cli("subs", "dQw4w9WgXcQ", "--use-proxy", "--out", str(self.dir / "out"),
                                   CLAUDE_TOOLS_LOCAL=str(empty))
         self.assertEqual(code, 5)
         self.assertIn("IPROYAL_RESIDENTIAL_URL", data["error"])
 
-    def test_doctor_ne_revele_jamais_la_valeur_du_proxy(self):
+    def test_doctor_never_reveals_proxy_value(self):
         local = self.dir / "local.env"
         local.write_text("IPROYAL_RESIDENTIAL_URL=http://user:secret@proxy.example:1234\n", encoding="utf-8")
         code, data = self.run_cli("doctor", CLAUDE_TOOLS_LOCAL=str(local))

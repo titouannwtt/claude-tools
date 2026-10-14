@@ -43,42 +43,42 @@ class PublishFlowTest(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def make_skill(self, name, body="Skill de démonstration.\n"):
+    def make_skill(self, name, body="Demo skill.\n"):
         folder = self.repo / "skills" / name
         folder.mkdir(parents=True, exist_ok=True)
         (folder / "SKILL.md").write_text("---\nname: %s\ndescription: demo\n---\n%s" % (name, body), encoding="utf-8")
 
-    def test_install_est_idempotent_et_cree_les_liens_et_le_hook(self):
+    def test_install_is_idempotent_and_creates_links_and_hook(self):
         self.make_skill("demo")
         first = run(["bash", "install.sh"], self.repo, self.env).stdout
-        self.assertIn("lien créé : demo", first)
+        self.assertIn("link created: demo", first)
         self.assertTrue((self.home / "skills" / "demo").is_symlink())
         self.assertTrue((self.repo / ".git" / "hooks" / "pre-commit").is_file())
         second = run(["bash", "install.sh"], self.repo, self.env).stdout
-        self.assertIn("lien mis à jour : demo", second)
+        self.assertIn("link updated: demo", second)
 
-    def test_publication_propre_pousse_sur_le_distant(self):
+    def test_clean_publish_pushes_to_remote(self):
         self.make_skill("demo")
         result = run(["bash", "tools/publish_skill.sh", "demo"], self.repo, self.env)
-        self.assertIn("poussé :", result.stdout)
+        self.assertIn("pushed:", result.stdout)
         log = run(["git", "log", "--oneline", "-1"], self.remote).stdout
         self.assertIn("feat(skill): demo", log)
 
-    def test_secret_bloque_le_commit_et_laisse_l_index_propre(self):
-        self.make_skill("demo", "clé : %s\n" % FAKE_KEY)
+    def test_secret_blocks_commit_and_leaves_index_clean(self):
+        self.make_skill("demo", "key: %s\n" % FAKE_KEY)
         result = run(["bash", "tools/publish_skill.sh", "demo"], self.repo, self.env, check=False)
         self.assertEqual(result.returncode, 1)
         self.assertNotIn(FAKE_KEY, result.stdout + result.stderr)
         self.assertEqual(run(["git", "diff", "--cached", "--name-only"], self.repo).stdout.strip(), "")
         self.assertEqual(run(["git", "log", "--oneline"], self.remote).stdout.count("\n"), 1)
 
-    def test_terme_interdit_bloque_le_commit(self):
-        self.make_skill("demo", "écrit par Zorglub\n")
+    def test_forbidden_term_blocks_commit(self):
+        self.make_skill("demo", "written by Zorglub\n")
         result = run(["bash", "tools/publish_skill.sh", "demo"], self.repo, self.env, check=False)
         self.assertEqual(result.returncode, 1)
 
-    def test_nom_invalide_ou_skill_absent(self):
-        self.assertEqual(run(["bash", "tools/publish_skill.sh", "Mauvais Nom"], self.repo, self.env, check=False).returncode, 2)
+    def test_invalid_name_or_missing_skill(self):
+        self.assertEqual(run(["bash", "tools/publish_skill.sh", "Bad Name"], self.repo, self.env, check=False).returncode, 2)
         self.assertEqual(run(["bash", "tools/publish_skill.sh", "absent"], self.repo, self.env, check=False).returncode, 2)
 
 

@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Téléchargement YouTube : métadonnées, vidéo, audio, miniature.
+"""YouTube download: metadata, video, audio, thumbnail.
 
-Commandes :
-  info <url>                              titre, durée, chaîne, formats les plus utiles (sans téléchargement)
-  video <url> [--height 1080] [--out D]   vidéo mp4 (hauteur maximale demandée)
-  audio <url> [--format mp3] [--out D]    piste audio seule
-  thumbnail <url> [--out D]               miniature la plus grande disponible (maxres, sd, hq, mq)
-Options communes : --use-proxy (proxy résidentiel de local.env, seulement après un blocage), --max-filesize 500M.
-À n'utiliser que pour des contenus que l'on a le droit de télécharger (les siens, sous licence libre, usage autorisé).
+Commands:
+  info <url>                              title, duration, channel, most useful formats (no download)
+  video <url> [--height 1080] [--out D]   mp4 video (requested maximum height)
+  audio <url> [--format mp3] [--out D]    audio track only
+  thumbnail <url> [--out D]               largest thumbnail available (maxres, sd, hq, mq)
+Common options: --use-proxy (residential proxy from local.env, only after a block), --max-filesize 500M.
+Only use it for content you are allowed to download (your own, freely licensed, authorized use).
 
-Sortie : JSON sur stdout. Codes : 0 succès ; 1 erreur inattendue ; 2 entrée invalide ; 4 bloqué (réessayer une
-fois avec --use-proxy) ; 5 dépendance manquante ; 8 miniature introuvable.
+Output: JSON on stdout. Codes: 0 success; 1 unexpected error; 2 invalid input; 4 blocked (retry once
+with --use-proxy); 5 missing dependency; 8 thumbnail not found.
 Python 3.9 compatible.
 """
 import argparse
@@ -50,7 +50,7 @@ def video_id_from_url(value):
             return match.group(1)
     if VIDEO_ID_RE.match(value):
         return value
-    raise Failure(EXIT_INVALID, "URL YouTube non reconnue : %s" % value)
+    raise Failure(EXIT_INVALID, "YouTube URL not recognized: %s" % value)
 
 
 def resolve_proxy(use_proxy, local_env=None):
@@ -58,7 +58,7 @@ def resolve_proxy(use_proxy, local_env=None):
         return None
     proxy = cttools.configured_proxy(local_env)
     if not proxy:
-        raise Failure(EXIT_MISSING, "IPROYAL_RESIDENTIAL_URL absent de local.env : impossible d'utiliser le proxy")
+        raise Failure(EXIT_MISSING, "IPROYAL_RESIDENTIAL_URL missing from local.env: cannot use the proxy")
     return proxy
 
 
@@ -69,7 +69,7 @@ def ytdlp_command():
     try:
         import yt_dlp  # noqa: F401
     except ImportError:
-        raise Failure(EXIT_MISSING, "yt-dlp introuvable : brew install yt-dlp, ou pip install -U yt-dlp")
+        raise Failure(EXIT_MISSING, "yt-dlp not found: brew install yt-dlp, or pip install -U yt-dlp")
     return [sys.executable, "-m", "yt_dlp"]
 
 
@@ -80,13 +80,13 @@ def run_ytdlp(args, proxy=None):
     try:
         result = subprocess.run(command + args, capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
-        raise Failure(EXIT_UNEXPECTED, "yt-dlp : délai dépassé (%d s)" % TIMEOUT_SECONDS)
+        raise Failure(EXIT_UNEXPECTED, "yt-dlp: timed out (%d s)" % TIMEOUT_SECONDS)
     output = (result.stdout or "") + (result.stderr or "")
     if result.returncode != 0:
         if any(marker in output for marker in BLOCK_MARKERS):
             first = next((line for line in output.splitlines() if "ERROR" in line), output.strip()[:200])
-            raise Failure(EXIT_BLOCKED, "téléchargement bloqué : %s" % first.strip())
-        raise Failure(EXIT_UNEXPECTED, "yt-dlp a échoué : %s" % output.strip()[-400:])
+            raise Failure(EXIT_BLOCKED, "download blocked: %s" % first.strip())
+        raise Failure(EXIT_UNEXPECTED, "yt-dlp failed: %s" % output.strip()[-400:])
     return result.stdout or ""
 
 
@@ -115,7 +115,7 @@ def download(args, extra):
     out = run_ytdlp(command + extra + [args.url], proxy)
     files = [line.strip() for line in out.splitlines() if line.strip() and Path(line.strip()).exists()]
     if not files:
-        raise Failure(EXIT_UNEXPECTED, "yt-dlp n'a produit aucun fichier (taille maximale dépassée ?)")
+        raise Failure(EXIT_UNEXPECTED, "yt-dlp produced no file (maximum size exceeded?)")
     path = Path(files[-1])
     return {"file": str(path), "bytes": path.stat().st_size}
 
@@ -142,16 +142,16 @@ def cmd_thumbnail(args):
                 body = r.read()
         except urllib.error.HTTPError as error:
             if error.code == 404:
-                continue  # taille absente pour cette vidéo : essayer la suivante
-            raise Failure(EXIT_BLOCKED if error.code in (403, 429) else EXIT_UNEXPECTED, "miniature : HTTP %d" % error.code)
+                continue  # size not available for this video: try the next one
+            raise Failure(EXIT_BLOCKED if error.code in (403, 429) else EXIT_UNEXPECTED, "thumbnail: HTTP %d" % error.code)
         except (urllib.error.URLError, OSError) as error:
-            raise Failure(EXIT_UNEXPECTED, "miniature : réseau injoignable (%s)" % getattr(error, "reason", error))
-        if len(body) < 1500:  # image de remplacement grise renvoyée à la place d'une taille absente
+            raise Failure(EXIT_UNEXPECTED, "thumbnail: network unreachable (%s)" % getattr(error, "reason", error))
+        if len(body) < 1500:  # gray placeholder image returned in place of a missing size
             continue
         path = out_dir / ("%s_%s.jpg" % (video_id, name))
         path.write_bytes(body)
         return {"file": str(path), "size_name": name, "bytes": len(body)}
-    raise Failure(EXIT_NO_THUMB, "aucune miniature trouvée pour %s" % video_id)
+    raise Failure(EXIT_NO_THUMB, "no thumbnail found for %s" % video_id)
 
 
 def build_parser():
@@ -162,8 +162,8 @@ def build_parser():
         item = sub.add_parser(name)
         item.add_argument("url")
         item.add_argument("--out", default="./yt-download")
-        item.add_argument("--use-proxy", action="store_true", help="proxy de local.env (repli après blocage)")
-        item.add_argument("--max-filesize", default=None, help="ex. 500M (obligatoire de fait avec le proxy)")
+        item.add_argument("--use-proxy", action="store_true", help="proxy from local.env (fallback after a block)")
+        item.add_argument("--max-filesize", default=None, help="e.g. 500M (de facto required with the proxy)")
         item.add_argument("--local-env", default=None)
         item.set_defaults(handler=handler)
         if name == "video":
@@ -183,7 +183,7 @@ def main(argv=None):
         print(json.dumps({"error": failure.message}, ensure_ascii=False))
         return failure.code
     except Exception as error:  # noqa: BLE001
-        print(json.dumps({"error": "erreur inattendue : %s" % error}, ensure_ascii=False))
+        print(json.dumps({"error": "unexpected error: %s" % error}, ensure_ascii=False))
         return EXIT_UNEXPECTED
     print(json.dumps(result, ensure_ascii=False))
     return EXIT_OK

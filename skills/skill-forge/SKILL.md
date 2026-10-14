@@ -1,82 +1,82 @@
 ---
 name: skill-forge
-description: Décider s'il faut créer un skill pour une demande réutilisable (outil, script, téléchargement, transcription, analyse), puis le concevoir, le rechercher et le construire après accord. À utiliser quand une demande est conséquente et réutilisable entre projets, ou quand l'utilisateur demande de créer ou d'améliorer un skill.
+description: Decide whether to create a skill for a reusable request (tool, script, download, transcription, analysis), then design it, research it and build it after agreement. Use when a request is substantial and reusable across projects, or when the user asks to create or improve a skill.
 ---
 
 # skill-forge
 
-Objectif : accumuler des skills réutilisables, un à un, sans en créer à tort. Un skill n'est pas justifié pour une tâche
-ponctuelle ; il l'est pour une capacité qui servira dans d'autres projets.
+Objective: accumulate reusable skills, one by one, without creating any wrongly. A skill is not justified for a one-off
+task; it is for a capability that will be useful in other projects.
 
-## 1. Vérifier l'existant
+## 1. Check what exists
 
-Lister `~/.claude/skills/` et `skills/` du dépôt `claude-tools`. Si un skill couvre la demande, l'utiliser et s'arrêter là.
+List `~/.claude/skills/` and `skills/` of the `claude-tools` repository. If a skill covers the request, use it and stop there.
 
-## 2. Proposer, ne pas créer
+## 2. Propose, do not create
 
-Si rien ne couvre la demande, écrire :
-« Nous n'avons pas de skill pour cela. Ça semble utile pour plus tard. Veux-tu que je le crée ? »
-Attendre la réponse. Sans accord, ne rien créer.
+If nothing covers the request, write:
+"We have no skill for this. It looks useful for later. Do you want me to create it?"
+Wait for the answer. Without agreement, create nothing.
 
-## 3. Planifier (après accord)
+## 3. Plan (after agreement)
 
-Présenter un plan court, à valider avant toute implémentation :
-- **Nom** (kebab-case, générique, sans nom personnel ni chemin en dur).
-- **Périmètre** : ce que fait le skill, et ce qu'il ne fait pas.
-- **Entrées et sorties** : arguments, format de sortie (texte, JSON).
-- **Script** : langage, justification (voir section 4), tests prévus.
-- **Recherche** : sources à explorer (dépôts GitHub, crates.io, PyPI, documentation officielle).
-- **Configuration** : valeurs locales (chemins, identifiants) dans `local.env`, ignoré par git.
+Present a short plan, to be validated before any implementation:
+- **Name** (kebab-case, generic, no personal name or hard-coded path).
+- **Scope**: what the skill does, and what it does not do.
+- **Inputs and outputs**: arguments, output format (text, JSON).
+- **Script**: language, justification (see section 4), planned tests.
+- **Research**: sources to explore (GitHub repositories, crates.io, PyPI, official documentation).
+- **Configuration**: local values (paths, identifiers) in `local.env`, ignored by git.
 
-## 4. Choisir le langage
+## 4. Choose the language
 
-Checklist de faisabilité Rust, à remplir avant d'écrire le script :
-1. Le travail est-il limité par le calcul (boucles lourdes, parsing de gros volumes) ? Oui/non.
-2. Faut-il distribuer un binaire unique sans dépendances ? Oui/non.
-3. Le script sera-t-il appelé très souvent (dizaines de fois par jour) ? Oui/non.
+Rust feasibility checklist, to fill in before writing the script:
+1. Is the work compute-bound (heavy loops, parsing large volumes)? Yes/no.
+2. Does a single dependency-free binary need to be distributed? Yes/no.
+3. Will the script be called very often (dozens of times a day)? Yes/no.
 
-- Au moins un « oui » et un gain mesuré ou estimé : Rust.
-- Sinon, ou si le travail est lié au réseau et aux sous-processus (yt-dlp, ffmpeg, API) : Python (bibliothèque standard
-  de préférence). Dire dans le plan pourquoi Rust n'est pas retenu.
-- Règle validée par l'utilisateur : Rust seulement si le gain est mesuré, Python sinon.
+- At least one "yes" and a measured or estimated gain: Rust.
+- Otherwise, or if the work is tied to the network and to subprocesses (yt-dlp, ffmpeg, APIs): Python (standard library
+  preferred). Say in the plan why Rust is not chosen.
+- Rule validated by the user: Rust only if the gain is measured, Python otherwise.
 
-## 5. Rechercher (sous-agent)
+## 5. Research (subagent)
 
-Lancer un `researcher` (Haiku 5.5, medium ; high si beaucoup de sources) avec un brief complet : question, sources,
-critères (licence, maintenance, installation, limites), format de rapport en tableau avec URL et date de consultation.
-Ne rien recommander sans ce tableau.
+Launch a `researcher` (Haiku 5.5, medium ; high if many sources) with a complete brief: question, sources,
+criteria (license, maintenance, installation, limits), report format as a table with URL and date accessed.
+Recommend nothing without this table.
 
-## 6. Construire
+## 6. Build
 
-- `SKILL.md` court : quand l'utiliser, quelle commande lancer, quoi faire en cas d'erreur.
-- Le script fait le travail (déterministe, JSON en sortie, codes de sortie, sous-commande `doctor` qui vérifie les dépendances).
-- Tests unitaires dans `tests/` (lancés avec `python3 -m unittest`).
-- Réparation : si le script échoue, l'agent lit l'erreur, corrige le script, relance. Deux tentatives au plus,
-  puis il remonte à l'utilisateur. Le script ne doit jamais demander à un modèle de faire le travail à sa place.
+- Short `SKILL.md`: when to use it, which command to run, what to do on error.
+- The script does the work (deterministic, JSON output, exit codes, a `doctor` subcommand that checks the dependencies).
+- Unit tests in `tests/` (run with `python3 -m unittest`).
+- Repair: if the script fails, the agent reads the error, fixes the script, reruns. Two attempts at most,
+  then it reports back to the user. The script must never ask a model to do the work in its place.
 
-## 7. Publier
+## 7. Publish
 
-Le skill est créé dans `skills/<nom>/` du dépôt `claude-tools` (son clone local ; `readlink ~/.claude/skills/skill-forge` donne l'emplacement).
-Une fois les tests verts, lancer depuis la racine du dépôt :
+The skill is created in `skills/<name>/` of the `claude-tools` repository (its local clone; `readlink ~/.claude/skills/skill-forge` gives the location).
+Once the tests are green, run from the repository root:
 
-`tools/publish_skill.sh <nom> ["message de commit"]`
+`tools/publish_skill.sh <name> ["commit message"]`
 
-Avant de publier, ajouter le skill à la vitrine du dépôt (en anglais) : une ligne dans le tableau « Skills » de
-`README.md` (nom lié à `skills/<nom>`, rôle, dépendances, compatibilité claude.ai) et une carte dans
-`assets/skills.svg` (icône, nom, accroche ; agrandir la grille si elle est pleine). Les compteurs de la bannière et
-du README sont mis à jour par le script (`tools/sync_counts.py`), qui signale aussi un skill absent de la vitrine.
+Before publishing, add the skill to the repository's showcase (in English): one row in the "Skills" table of
+`README.md` (name linked to `skills/<name>`, role, dependencies, claude.ai compatibility) and a card in
+`assets/skills.svg` (icon, name, tagline; enlarge the grid if it is full). The banner and README counters are
+updated by the script (`tools/sync_counts.py`), which also flags a skill missing from the showcase.
 
-Le script enchaîne, sans autre intervention :
-0. mise à jour des compteurs (`tools/sync_counts.py`) ;
-1. contrôle des secrets, des e-mails, des IP, des chemins personnels et des termes interdits de `local.env`
-   (`tools/check_repo.py --staged`) ; en cas de constat, rien n'est commité, corriger puis relancer ;
-2. commit et push sur `main` ;
-3. `git pull` et `./install.sh` sur l'autre machine (réglage `PEER_SSH` de `local.env`), qui crée le lien dans
-   `~/.claude/skills/`. Sans `PEER_SSH`, il affiche la commande à lancer à la main.
+The script chains the following, with no other intervention:
+0. counter update (`tools/sync_counts.py`);
+1. check for secrets, e-mails, IPs, personal paths and the forbidden terms of `local.env`
+   (`tools/check_repo.py --staged`); on a finding, nothing is committed, fix then rerun;
+2. commit and push to `main`;
+3. `git pull` and `./install.sh` on the other machine (`PEER_SSH` setting of `local.env`), which creates the link in
+   `~/.claude/skills/`. Without `PEER_SSH`, it prints the command to run by hand.
 
-Ne jamais contourner le contrôle (`--no-verify`) ni commiter un fichier de `local.env`.
+Never bypass the check (`--no-verify`) nor commit a `local.env` file.
 
-## Garde-fous
+## Safeguards
 
-- Aucun nom personnel, pseudo ou chemin personnel dans un fichier versionné. Les valeurs locales vont dans `local.env`.
-- Aucun secret commité. Les identifiants proxy ou API restent dans `local.env`.
+- No personal name, handle or personal path in a versioned file. Local values go in `local.env`.
+- No committed secret. Proxy or API credentials stay in `local.env`.

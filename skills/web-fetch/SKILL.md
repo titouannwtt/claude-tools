@@ -1,39 +1,39 @@
 ---
 name: web-fetch
-description: Récupérer le contenu d'une URL (page HTML, texte, JSON) quand l'accès direct est bloqué ou instable, avec repli automatique sur un proxy résidentiel. Utiliser quand WebFetch échoue (403, 429, 503, expiration), ou pour enregistrer le texte d'une page dans un fichier sans passer par le modèle.
+description: Fetch the content of a URL (HTML page, text, JSON) when direct access is blocked or unstable, with automatic fallback to a residential proxy. Use when WebFetch fails (403, 429, 503, timeout), or to save a page's text to a file without going through the model.
 ---
 
 # web-fetch
 
-Un script récupère la page : essai direct, puis proxy résidentiel seulement si l'accès direct est bloqué.
-Ton rôle : lancer, lire le JSON, décider de la suite. Le script ne contourne ni connexion ni abonnement.
+A script fetches the page: direct attempt, then the residential proxy only if direct access is blocked.
+Your role: run it, read the JSON, decide what follows. The script bypasses neither a login nor a subscription.
 
-## Commande
+## Command
 
-`python3 ~/.claude/skills/web-fetch/scripts/fetch_url.py "<url>" [--text] [--out fichier]`
+`python3 ~/.claude/skills/web-fetch/scripts/fetch_url.py "<url>" [--text] [--out file]`
 
-- `--text` : texte lisible de la page (sans script ni style) ; sans lui, HTML brut.
-- `--out` : écrit le corps dans un fichier ; le JSON ne contient alors que le chemin (utile pour une grande page).
-- `--no-proxy` : jamais de proxy. `--force-proxy` : directement par le proxy (rare, voir budget).
-- Sortie JSON : `url`, `status`, `via` (`direct` ou `proxy`), `content_type`, `bytes`, `text` ou `file`.
+- `--text`: readable text of the page (without script or style); without it, raw HTML.
+- `--out`: writes the body to a file; the JSON then contains only the path (useful for a large page).
+- `--no-proxy`: never a proxy. `--force-proxy`: directly through the proxy (rare, see budget).
+- JSON output: `url`, `status`, `via` (`direct` or `proxy`), `content_type`, `bytes`, `text` or `file`.
 
-## Codes de sortie
+## Exit codes
 
-| Code | Sens | Action |
+| Code | Meaning | Action |
 |---|---|---|
-| 0 | Succès | Lire `text` ou `file`. Si `via` vaut `proxy`, le dire à l'utilisateur. |
-| 4 | Bloqué, même avec le proxy ou proxy absent | Dire que le site refuse l'accès. Ne pas insister ; proposer le navigateur piloté (skill `mac-control`) si l'utilisateur est d'accord. |
-| 6 | Erreur HTTP hors blocage (404, 500...) | Vérifier l'URL ; le proxy n'y changerait rien. |
-| 7 | Réseau injoignable | Vérifier la connexion ou le nom de domaine. |
-| 2 | URL invalide | Demander une URL http(s). |
-| 1 | Erreur inattendue | Réparer le script (voir ci-dessous). |
+| 0 | Success | Read `text` or `file`. If `via` is `proxy`, tell the user. |
+| 4 | Blocked, even with the proxy or no proxy configured | Say that the site refuses access. Do not insist; offer the driven browser (skill `mac-control`) if the user agrees. |
+| 6 | HTTP error other than a block (404, 500...) | Check the URL; the proxy would not change anything. |
+| 7 | Network unreachable | Check the connection or the domain name. |
+| 2 | Invalid URL | Ask for an http(s) URL. |
+| 1 | Unexpected error | Repair the script (see below). |
 
 ## Proxy
 
-Adresse dans `local.env` à la racine de `claude-tools` (clé `IPROYAL_RESIDENTIAL_URL`, ignoré par git). Budget limité
-(2 Go) : ne pas télécharger de gros fichiers par ce canal. Ne jamais afficher la valeur du proxy.
+Address in `local.env` at the root of `claude-tools` (key `IPROYAL_RESIDENTIAL_URL`, ignored by git). Limited budget
+(2 GB): do not download large files through this channel. Never display the proxy value.
 
-## Réparation
+## Repair
 
-Corriger `<claude-tools>/skills/web-fetch/scripts/fetch_url.py`, puis lancer `python3 -m unittest discover -s tests`
-dans le dossier du skill. Deux tentatives au plus, puis remonter le message exact à l'utilisateur.
+Fix `<claude-tools>/skills/web-fetch/scripts/fetch_url.py`, then run `python3 -m unittest discover -s tests`
+in the skill's folder. Two attempts at most, then report the exact message to the user.

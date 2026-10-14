@@ -1,57 +1,57 @@
 ---
 name: site-design
-description: Analyser le design d'un site web existant (palette, typographie, espacements, rayons, ombres, variables CSS, points de rupture, captures aux largeurs mobile, tablette et bureau) pour s'en inspirer, le reproduire ou l'auditer. Utiliser quand l'utilisateur donne l'URL d'un site et demande son style, ses couleurs, ses polices, de le copier dans l'esprit, ou de vérifier son rendu responsive.
+description: Analyze the design of an existing website (palette, typography, spacing, radii, shadows, CSS variables, breakpoints, screenshots at mobile, tablet and desktop widths) to draw inspiration from it, reproduce it or audit it. Use when the user gives a site URL and asks for its style, its colors, its fonts, to copy it in spirit, or to check its responsive rendering.
 ---
 
 # site-design
 
-Un script charge la page dans Chromium (Playwright), mesure les styles calculés des éléments visibles, et écrit des
-captures et une synthèse. Zéro token de modèle pour la mesure ; tu lis ensuite `summary.md` et regardes les captures.
+A script loads the page in Chromium (Playwright), measures the computed styles of the visible elements, and writes
+screenshots and a summary. Zero model tokens for the measurement; you then read `summary.md` and look at the screenshots.
 
-## Commandes
+## Commands
 
-Script : `~/.claude/skills/site-design/scripts/site_design.py`. Sortie : JSON sur stdout.
+Script: `~/.claude/skills/site-design/scripts/site_design.py`. Output: JSON on stdout.
 
-- `analyze "<url>" --out <dossier>` : écrit `shot-375.png`, `shot-768.png`, `shot-1280.png`, `design.json`, `summary.md`.
-- `--widths 375,1440` : autres largeurs (la plus grande sert aux mesures). `--dark` : capture et mesure la plus grande
-  largeur en mode sombre (les mesures décrivent alors le thème sombre ; lancer deux fois pour comparer).
-- `doctor` : vérifie Playwright et Chromium.
+- `analyze "<url>" --out <folder>`: writes `shot-375.png`, `shot-768.png`, `shot-1280.png`, `design.json`, `summary.md`.
+- `--widths 375,1440`: other widths (the largest is used for the measurements). `--dark`: captures and measures the largest
+  width in dark mode (the measurements then describe the dark theme; run twice to compare).
+- `doctor`: checks Playwright and Chromium.
 
-## Après l'analyse
+## After the analysis
 
-1. Lire `summary.md` (court). Ouvrir les captures avec Read pour juger l'impression d'ensemble : les mesures disent
-   quoi, les captures disent si c'est beau.
-2. Restituer en trois blocs : identité (palette, polices, ton), système (échelle de tailles, espacements, rayons,
-   ombres), responsive (défilement horizontal, points de rupture). Citer les valeurs mesurées.
-3. Pour reproduire un style : s'inspirer du système (échelle, rythme, contrastes), ne pas copier textes, logos, images
-   ni polices sous licence.
-4. Limites : un fond posé sur `body` ou `html` seul n'apparaît pas dans les fonds ; les feuilles de style tierces
-   (autre domaine) ne livrent ni variables ni points de rupture ; un site derrière une connexion n'est pas analysable.
+1. Read `summary.md` (short). Open the screenshots with Read to judge the overall impression: the measurements say
+   what, the screenshots say whether it looks good.
+2. Report in three blocks: identity (palette, fonts, tone), system (size scale, spacing, radii,
+   shadows), responsive (horizontal scrolling, breakpoints). Cite the measured values.
+3. To reproduce a style: draw inspiration from the system (scale, rhythm, contrasts), do not copy texts, logos, images
+   or licensed fonts.
+4. Limits: a background set only on `body` or `html` does not appear in the backgrounds; third-party stylesheets
+   (other domain) deliver neither variables nor breakpoints; a site behind a login cannot be analyzed.
 
-## Codes de sortie
+## Exit codes
 
-| Code | Sens | Action |
+| Code | Meaning | Action |
 |---|---|---|
-| 0 | Succès | Lire `summary.md` et les captures. |
-| 4 | Page bloquée (403, 429) | Relancer **une fois** avec `--use-proxy` ; sinon le dire. |
-| 5 | Playwright ou Chromium manquant | Voir Installation. |
-| 7 | Page injoignable | Vérifier l'URL et la connexion. |
-| 2 | URL invalide | Demander une URL http(s). |
-| 1 | Erreur inattendue | Réparer le script (voir ci-dessous). |
+| 0 | Success | Read `summary.md` and the screenshots. |
+| 4 | Page blocked (403, 429) | Rerun **once** with `--use-proxy`; otherwise say so. |
+| 5 | Playwright or Chromium missing | See Installation. |
+| 7 | Page unreachable | Check the URL and the connection. |
+| 2 | Invalid URL | Ask for an http(s) URL. |
+| 1 | Unexpected error | Repair the script (see below). |
 
 ## Installation
 
-Mac : `python3 -m venv ~/.venvs/site-design && ~/.venvs/site-design/bin/pip install playwright &&
-~/.venvs/site-design/bin/playwright install chromium` (si un index pip privé gêne, ajouter
-`--isolated --index-url https://pypi.org/simple`). Le script bascule tout seul vers cet environnement.
-VPS : `pip install --user playwright && python3 -m playwright install --with-deps chromium`.
+Mac: `python3 -m venv ~/.venvs/site-design && ~/.venvs/site-design/bin/pip install playwright &&
+~/.venvs/site-design/bin/playwright install chromium` (if a private pip index gets in the way, add
+`--isolated --index-url https://pypi.org/simple`). The script switches to that environment by itself.
+VPS: `pip install --user playwright && python3 -m playwright install --with-deps chromium`.
 
 ## Proxy
 
-`--use-proxy` : proxy résidentiel de `local.env` (clé `IPROYAL_RESIDENTIAL_URL`), seulement après un blocage. Budget
-limité : une page charge ses images, donc préférer un seul passage. Ne jamais afficher la valeur du proxy.
+`--use-proxy`: residential proxy from `local.env` (key `IPROYAL_RESIDENTIAL_URL`), only after a block. Limited
+budget: a page loads its images, so prefer a single pass. Never display the proxy value.
 
-## Réparation
+## Repair
 
-Corriger `<claude-tools>/skills/site-design/scripts/site_design.py`, puis `python3 -m unittest discover -s tests`
-dans le dossier du skill. Deux tentatives au plus, puis remonter le message exact à l'utilisateur.
+Fix `<claude-tools>/skills/site-design/scripts/site_design.py`, then `python3 -m unittest discover -s tests`
+in the skill's folder. Two attempts at most, then report the exact message to the user.

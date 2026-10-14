@@ -48,11 +48,11 @@ class RobotsTests(unittest.TestCase):
     def test_sitemaps(self):
         self.assertEqual(self.sitemaps, ["https://exemple.org/sitemap-index.xml"])
 
-    def test_disallow_et_exception(self):
+    def test_disallow_and_exception(self):
         self.assertFalse(g.robots_allows(self.groups, "ClaudeBot", "/app/x"))
         self.assertTrue(g.robots_allows(self.groups, "ClaudeBot", "/app/sitemap-convert.xml"))
 
-    def test_groupe_specifique(self):
+    def test_specific_group(self):
         self.assertTrue(g.robots_allows(self.groups, "GPTBot", "/blog/"))
         self.assertFalse(g.robots_allows(self.groups, "Bytespider", "/"))
 
@@ -76,7 +76,7 @@ class PageTests(unittest.TestCase):
     def setUp(self):
         self.r = g.analyse_html(HTML, "https://exemple.org/fr/a/")
 
-    def test_champs(self):
+    def test_fields(self):
         self.assertEqual(self.r["title"], "Accordeur en ligne")
         self.assertEqual(self.r["lang"], "fr")
         self.assertTrue(self.r["canonical_matches"])
@@ -84,7 +84,7 @@ class PageTests(unittest.TestCase):
         self.assertTrue(self.r["has_time_element"])
         self.assertEqual(self.r["hreflang"], 1)
 
-    def test_liens(self):
+    def test_links(self):
         self.assertEqual(self.r["internal_links"], 3)
         self.assertEqual(self.r["internal_links_without_slash"], 1)
 
@@ -94,9 +94,9 @@ class PageTests(unittest.TestCase):
         self.assertEqual(ld["with_id"], 1)
         self.assertEqual(ld["with_sameas"], 1)
 
-    def test_texte_visible_sans_script(self):
+    def test_visible_text_without_script(self):
         self.assertLess(self.r["visible_words"], 60)
-        self.assertTrue(any("contenu mince" in i for i in self.r["issues"]))
+        self.assertTrue(any("thin content" in i for i in self.r["issues"]))
 
     def test_cli_args(self):
         self.assertEqual(g.main(["page"]), 2)
@@ -107,16 +107,16 @@ if __name__ == "__main__":
 
 
 class SoumissionTests(unittest.TestCase):
-    def test_assertion_jwt(self):
+    def test_jwt_assertion(self):
         import base64
         import json as j
         import gsc_submit as s
-        a = s.build_assertion({"client_email": "sa@x.iam", "token_uri": "https://t"}, 1000, lambda d: b"SIG")  # check-repo: ignore (fausse adresse de test)
+        a = s.build_assertion({"client_email": "sa@x.iam", "token_uri": "https://t"}, 1000, lambda d: b"SIG")  # check-repo: ignore (fake test address)
         h, c, sig = a.split(".")
         pad = lambda x: x + "=" * (-len(x) % 4)
         self.assertEqual(j.loads(base64.urlsafe_b64decode(pad(h)))["alg"], "RS256")
         cl = j.loads(base64.urlsafe_b64decode(pad(c)))
-        self.assertEqual((cl["iss"], cl["iat"], cl["exp"]), ("sa@x.iam", 1000, 4600))  # check-repo: ignore (fausse adresse de test)
+        self.assertEqual((cl["iss"], cl["iat"], cl["exp"]), ("sa@x.iam", 1000, 4600))  # check-repo: ignore (fake test address)
         self.assertEqual(base64.urlsafe_b64decode(pad(sig)), b"SIG")
 
     def test_indexnow_sitemap(self):
@@ -124,7 +124,7 @@ class SoumissionTests(unittest.TestCase):
         self.assertEqual(n.urls_from_sitemap("<url><loc> https://e.org/a/ </loc></url><loc>https://e.org/b/</loc>"),
                          ["https://e.org/a/", "https://e.org/b/"])
 
-    def test_configuration_absente(self):
+    def test_missing_configuration(self):
         import indexnow as n
         old = os.environ.pop("INDEXNOW_KEY", None)
         try:

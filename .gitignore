@@ -1,4 +1,4 @@
-# Configuration locale : chemins, identité, secrets. Jamais commitée.
+# Local configuration: paths, identity, secrets. Never committed.
 local.env
 local/
 *.local.*

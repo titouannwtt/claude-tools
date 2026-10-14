@@ -1,43 +1,39 @@
-# Squelette de README pour un dépôt public d'exemples d'API
+# README skeleton for a public API examples repository
 
-Usage : dépôt GitHub public qui contient des exemples exécutables d'une API publique (voir
-`../06-hors-site.md`, §5). Remplacez les crochets. Le contenu du README est en anglais (langue des
-assistants de code et des développeurs), le reste de ce fichier en français.
+Use: a public GitHub repository that contains runnable examples of a public API (see `../06-off-site.md`, §5). Replace
+the brackets. The README content is in English (the language of coding assistants and developers).
 
-## Paramètres
+## Parameters
 
-| Paramètre | Contenu | Exemple (Jam Jam) |
+| Parameter | Content | Example (Jam Jam) |
 |---|---|---|
-| `[NOM]` | nom du produit | Jam Jam |
-| `[SITE]` | adresse du site | `https://jam-jam.org/` |
-| `[API_BASE]` | adresse de base de l'API | `https://jam-jam.org/api/v1` |
-| `[OPENAPI]` | adresse du contrat OpenAPI | `https://jam-jam.org/api/v1/openapi.json` |
-| `[DOCS]` | page de documentation | `https://jam-jam.org/developers/` |
-| `[FONCTION]` | ce que fait l'API en une phrase | "converts music files, links and text into chord sheets, PDF, MIDI or MusicXML" |
-| `[PREFIXE_CLE]` | début d'une clé d'API (jamais une vraie clé) | `jj_live_` |
-| `[VARIABLE_CLE]` | nom de la variable d'environnement | `JAM_JAM_API_KEY` |
-| `[PAQUET_MCP]` | nom du paquet du serveur MCP, si publié | `@jam-jam/convert-mcp` |
-| `[CGU]` | adresse des conditions d'utilisation | `https://jam-jam.org/terms/` |
+| `[NAME]` | product name | Jam Jam |
+| `[SITE]` | site address | `https://jam-jam.org/` |
+| `[API_BASE]` | API base address | `https://jam-jam.org/api/v1` |
+| `[OPENAPI]` | OpenAPI contract address | `https://jam-jam.org/api/v1/openapi.json` |
+| `[DOCS]` | documentation page | `https://jam-jam.org/developers/` |
+| `[FUNCTION]` | what the API does, in one sentence | "converts music files, links and text into chord sheets, PDF, MIDI or MusicXML" |
+| `[KEY_PREFIX]` | start of an API key (never a real key) | `jj_live_` |
+| `[KEY_VARIABLE]` | environment variable name | `JAM_JAM_API_KEY` |
+| `[MCP_PACKAGE]` | MCP server package name, if published | `@jam-jam/convert-mcp` |
+| `[TERMS]` | terms of use address | `https://jam-jam.org/terms/` |
 
-## Vérifications avant publication
+## Checks before publishing
 
-1. Aucune vraie clé nulle part (fichiers, historique Git, exemples de sortie). Un `.env.example` avec une
-   clé fictive; `.env` dans `.gitignore`.
-2. Aucune parole de chanson, aucun titre ou extrait protégé : les fichiers d'exemple sont du domaine public
-   ou créés pour le dépôt.
-3. Chaque identifiant de format ou de route est vérifié contre le contrat OpenAPI ET exécuté une fois.
-4. Le paquet MCP cité est réellement publié sur le registre de paquets; les adresses des pages légales
-   répondent 200.
-5. Les quotas du tableau sont ceux de la page de tarifs du site (pas de chiffre recopié d'un ancien
-   document).
-6. Licence MIT (ou Apache-2.0) et phrase précisant que la licence couvre les exemples, pas le service.
-7. Ensuite : ajouter le dépôt au `sameAs` de l'`Organization`, à la page développeurs du site et, si
-   l'élément existe, à Wikidata (P1324).
+1. No real key anywhere (files, Git history, output examples). A `.env.example` with a fake key; `.env` in
+   `.gitignore`.
+2. No song lyrics, no protected title or excerpt: the example files are public domain or created for the repository.
+3. Every format identifier or route is checked against the OpenAPI contract AND run once.
+4. The MCP package cited is really published in the package registry; the legal page addresses answer 200.
+5. The quotas in the table are those of the site's pricing page (no figure copied from an old document).
+6. MIT (or Apache-2.0) license, and a sentence specifying that the license covers the examples, not the service.
+7. Then: add the repository to the `Organization`'s `sameAs`, to the site's developer page and, if the item exists, to
+   Wikidata (P1324).
 
-## Structure du dépôt
+## Repository structure
 
 ```
-[nom]-api-examples/
+[name]-api-examples/
   README.md
   LICENSE
   .env.example
@@ -45,7 +41,7 @@ assistants de code et des développeurs), le reste de ce fichier en français.
   curl/
     01-list-formats.sh  02-convert-file.sh  03-follow-job-sse.sh
     04-poll-job.sh      05-download-result.sh  06-usage.sh
-  javascript/           (Node 20+, fetch natif, aucune dépendance)
+  javascript/           (Node 20+, native fetch, no dependency)
     package.json  list-formats.mjs  convert-file.mjs  convert-url.mjs  follow-events.mjs
   python/               (Python 3.10+, requests)
     requirements.txt  list_formats.py  convert_file.py  convert_url.py  usage.py
@@ -53,18 +49,17 @@ assistants de code et des développeurs), le reste de ce fichier en français.
     claude_desktop_config.json
 ```
 
-Description GitHub : `Examples for the [NOM] REST API: [FONCTION].` Topics à adapter (campagne :
-`music`, `chords`, `chordpro`, `musicxml`, `midi`, `pdf`, `rest-api`, `openapi`, `songbook`). Champ site :
-`[DOCS]`.
+GitHub description: `Examples for the [NAME] REST API: [FUNCTION].` Topics to adapt (campaign: `music`, `chords`,
+`chordpro`, `musicxml`, `midi`, `pdf`, `rest-api`, `openapi`, `songbook`). Website field: `[DOCS]`.
 
-## README.md (squelette à coller)
+## README.md (skeleton to paste)
 
 ````markdown
-# [NOM] API examples
+# [NAME] API examples
 
-Runnable examples for the [[NOM]]([SITE]) REST API.
+Runnable examples for the [[NAME]]([SITE]) REST API.
 
-The API [FONCTION]. It is the same engine as the [NOM] app.
+The API [FUNCTION]. It is the same engine as the [NAME] app.
 
 - Base URL: `[API_BASE]`
 - OpenAPI contract: [`[OPENAPI]`]([OPENAPI])
@@ -72,9 +67,9 @@ The API [FONCTION]. It is the same engine as the [NOM] app.
 
 ## Get an API key
 
-1. Create a free [NOM] account at [[SITE]]([SITE]).
+1. Create a free [NAME] account at [[SITE]]([SITE]).
 2. In the app, open **Settings, API keys** and create a key.
-3. The key starts with `[PREFIXE_CLE]` and is shown once. Copy it into `.env`:
+3. The key starts with `[KEY_PREFIX]` and is shown once. Copy it into `.env`:
 
 ```sh
 cp .env.example .env
@@ -114,17 +109,17 @@ curl [API_BASE]/formats
 
 # 2. Submit a file
 curl -X POST [API_BASE]/jobs \
-  -H "Authorization: Bearer $[VARIABLE_CLE]" \
+  -H "Authorization: Bearer $[KEY_VARIABLE]" \
   -F file=@samples/public-domain-sample.[ext] \
   -F inputFormat=[INPUT_FORMAT] \
   -F output=[OUTPUT_FORMAT]
 
 # 3. Follow progress (Server-Sent Events)
-curl -N -H "Authorization: Bearer $[VARIABLE_CLE]" \
+curl -N -H "Authorization: Bearer $[KEY_VARIABLE]" \
   [API_BASE]/jobs/<job_id>/events
 
 # 4. Download the result
-curl -H "Authorization: Bearer $[VARIABLE_CLE]" \
+curl -H "Authorization: Bearer $[KEY_VARIABLE]" \
   -OJ [API_BASE]/jobs/<job_id>/result
 ```
 
@@ -132,7 +127,7 @@ curl -H "Authorization: Bearer $[VARIABLE_CLE]" \
 
 ```js
 const API = '[API_BASE]';
-const headers = { Authorization: `Bearer ${process.env.[VARIABLE_CLE]}` };
+const headers = { Authorization: `Bearer ${process.env.[KEY_VARIABLE]}` };
 
 const res = await fetch(`${API}/jobs`, {
   method: 'POST',
@@ -160,7 +155,7 @@ if (job.phase === 'done') {
 import os, time, requests
 
 API = "[API_BASE]"
-HEADERS = {"Authorization": f"Bearer {os.environ['[VARIABLE_CLE]']}"}
+HEADERS = {"Authorization": f"Bearer {os.environ['[KEY_VARIABLE]']}"}
 
 job = requests.post(f"{API}/jobs", headers=HEADERS,
                     json={"url": "https://example.com/my-document", "output": "[OUTPUT_FORMAT]"})
@@ -183,10 +178,10 @@ else:
 ```json
 {
   "mcpServers": {
-    "[nom]": {
+    "[name]": {
       "command": "npx",
-      "args": ["-y", "[PAQUET_MCP]"],
-      "env": { "[VARIABLE_CLE]": "[PREFIXE_CLE]xxxxxxxxxxxxxxxx" }
+      "args": ["-y", "[MCP_PACKAGE]"],
+      "env": { "[KEY_VARIABLE]": "[KEY_PREFIX]xxxxxxxxxxxxxxxx" }
     }
   }
 }
@@ -215,14 +210,14 @@ Only convert content you have the right to use. The sample in `samples/` is in t
 
 ## License
 
-The examples in this repository are released under the MIT License. The [NOM] API and service are
-governed by the [[NOM] terms]([CGU]).
+The examples in this repository are released under the MIT License. The [NAME] API and service are
+governed by the [[NAME] terms]([TERMS]).
 ````
 
 ## Notes
 
-- Les codes d'erreur du tableau sont des exemples usuels : remplacez-les par ceux du contrat OpenAPI
-  réel, sans en inventer.
-- Gardez le README court : la documentation complète reste sur le site (`[DOCS]`) et le dépôt la cite.
-- Un dépôt qui n'est pas maintenu nuit à l'entité : prévoir une revue à chaque changement de contrat
-  (format, quota, route) et une date de dernière vérification dans le README.
+- The error codes in the table are usual examples: replace them with those of the real OpenAPI contract, without
+  inventing any.
+- Keep the README short: the full documentation stays on the site (`[DOCS]`) and the repository links to it.
+- An unmaintained repository harms the entity: plan a review at each contract change (format, quota, route) and a
+  last-verified date in the README.

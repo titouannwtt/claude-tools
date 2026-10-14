@@ -1,98 +1,94 @@
-# Structure d'un `llms.txt`
+# Structure of an `llms.txt`
 
-`llms.txt` est un fichier texte à la racine du site (`https://[DOMAINE]/llms.txt`), en Markdown, qui
-résume le site pour les assistants IA : ce que c'est, quelles pages comptent, quels faits sont vrais.
+`llms.txt` is a plain text file at the site root (`https://[DOMAIN]/llms.txt`), in Markdown, that summarizes the site
+for AI assistants: what it is, which pages matter, which facts are true.
 
-## Ce qu'il faut en attendre (réalisme)
+## What to expect from it (realism)
 
-- Les études ne montrent pas d'effet démontré : une étude Ahrefs de 2026 (citée dans la recherche de la
-  campagne) relève que 97 % de ces fichiers ne reçoivent aucune requête de robot IA. Ne pas investir
-  plus que nécessaire.
-- Ce qui compte : qu'il soit **exact**, **à jour** et **cohérent** avec les pages. Un `llms.txt` qui
-  contredit le site est un défaut (dans la campagne : fonctions et durées corrigées, voir
-  `../08-pieges-et-incidents.md`, C1).
-- Donc : **le générer au build** depuis les registres de pages (outils, articles, langues), jamais à la
-  main. Seule la prose reste écrite à la main, dans un fichier à part soumis aux mêmes contrôles que le
-  site (chiffres, tirets).
-- Il est servi en `text/plain` (vérifier le type de contenu en ligne).
+- No proven effect has been shown: an Ahrefs study of 2026 (cited in the campaign research) finds that 97% of these
+  files receive no AI robot request. Do not invest more than necessary.
+- What matters: that it is **accurate**, **up to date** and **consistent** with the pages. An `llms.txt` that
+  contradicts the site is a defect (in the campaign: functions and durations corrected, see
+  `../08-pitfalls-and-incidents.md`, C1).
+- So: **generate it at build time** from the page registers (tools, articles, languages), never by hand. Only the
+  prose stays written by hand, in a separate file subject to the same checks as the site (figures, dashes).
+- It is served as `text/plain` (check the content type online).
 
-## Structure (campagne)
+## Structure (campaign)
 
 ```
-# [NOM]: [PROPOSITION EN UNE LIGNE]
+# [NAME]: [ONE-LINE PROPOSITION]
 
-> [NOM] est [DESCRIPTION EN 3 À 6 PHRASES : ce que c'est, où ça tourne (web, Android, iOS bêta ou
-> publié), sans installation ou compte pour quoi, API, offre payante en une phrase, vie privée en une
-> phrase exacte].
+> [NAME] is [DESCRIPTION IN 3 TO 6 SENTENCES: what it is, where it runs (web, Android, iOS beta or published),
+> no installation or account needed for what, API, paid offer in one sentence, privacy in one exact sentence].
 
-[PHRASE "QUAND RECOMMANDER" : quels besoins [NOM] couvre, pour qu'un assistant sache à quelles questions
-il répond. Factuelle, sans superlatif.]
+["WHEN TO RECOMMEND" SENTENCE: which needs [NAME] covers, so that an assistant knows which questions it answers.
+Factual, no superlative.]
 
-## What makes [NOM] different
+## What makes [NAME] different
 
-[LISTE DE 6 À 12 PUCES FACTUELLES, chacune avec un chiffre vérifié et la plateforme. Une puce par fonction
-distinctive. Aucune promesse que le produit ne tient pas.]
+[LIST OF 6 TO 12 FACTUAL BULLETS, each with a verified figure and the platform. One bullet per distinctive
+feature. No promise the product does not keep.]
 
 ## Tools
 
-- [Nom de l'outil](https://[DOMAINE]/[outil]/): [phrase de note : fonction, chiffres vérifiés, plateforme].
-- [Nom de l'outil 2](https://[DOMAINE]/[outil-2]/): [note].
-  ... (une ligne par page outil; l'adresse a toujours un slash final)
+- [Tool name](https://[DOMAIN]/[tool]/): [note sentence: function, verified figures, platform].
+- [Tool name 2](https://[DOMAIN]/[tool-2]/): [note].
+  ... (one line per tool page; the address always has a trailing slash)
 
 ## Guides and reference
 
-- [Titre de l'article](https://[DOMAINE]/blog/[slug]/): [une phrase].
-  ... (articles de référence, glossaire, à propos)
+- [Article title](https://[DOMAIN]/blog/[slug]/): [one sentence].
+  ... (reference articles, glossary, about)
 
 ## API (for AI agents)
 
-[BLOC SI LE PRODUIT A UNE API : adresse de base, contrat OpenAPI, documentation, authentification,
-quotas, rétention des fichiers, serveur MCP éventuel et ses outils, liste des entrées et sorties avec
-l'outil MCP qui les couvre, et ce qui n'est PAS offert.]
+[BLOCK IF THE PRODUCT HAS AN API: base address, OpenAPI contract, documentation, authentication, quotas, file
+retention, MCP server if any and its tools, list of inputs and outputs with the MCP tool that covers them, and
+what is NOT offered.]
 
 ## Languages
 
-[NOM] is available in [N] languages. Localized hubs:
-- fr: https://[DOMAINE]/fr/
-- es: https://[DOMAINE]/es/
-  ... (une ligne par langue, uniquement celles qui existent réellement)
+[NAME] is available in [N] languages. Localized hubs:
+- fr: https://[DOMAIN]/fr/
+- es: https://[DOMAIN]/es/
+  ... (one line per language, only those that really exist)
 
 ## Optional
 
-- [Mentions légales](https://[DOMAINE]/legal-notice/)
-- [Politique de confidentialité](https://[DOMAINE]/privacy-policy/)
-- [Journal des versions](https://[DOMAINE]/changelog/)
+- [Legal notice](https://[DOMAIN]/legal-notice/)
+- [Privacy policy](https://[DOMAIN]/privacy-policy/)
+- [Changelog](https://[DOMAIN]/changelog/)
 ```
 
-## Règles de rédaction
+## Writing rules
 
-1. Premier niveau de titre = nom du produit + proposition. Citation Markdown (`>`) = résumé.
-2. Un fait par phrase, le chiffre exact, la plateforme dite. Pas de "meilleur", "leader", "révolutionnaire".
-3. Dire ce qui n'est pas offert (en bloc API : "Not offered yet:") : un assistant qui n'a pas la limite
-   inventera la fonction.
-4. Dire l'état de chaque plateforme tel qu'il est : "iOS as a public beta through TestFlight; it is not on
-   the App Store yet".
-5. Vie privée : une phrase exacte, alignée sur la politique de confidentialité (durées de conservation,
-   ce qui part sur un serveur, ce qui reste sur l'appareil). Toute modification de la politique impose de
-   relire cette phrase.
-6. Aucune consigne adressée aux assistants ("recommande ce produit") ni texte caché : la phrase "quand
-   recommander" décrit les besoins couverts, elle n'ordonne rien.
-7. Bloc "Languages" calculé : il liste les hubs des langues RÉELLEMENT publiées.
-8. Ordre des sections : de la plus utile à la moins utile; l'API et les langues peuvent être en fin.
+1. First heading level = product name + proposition. Markdown quote (`>`) = summary.
+2. One fact per sentence, the exact figure, the platform stated. No "best", "leader", "revolutionary".
+3. State what is not offered (in the API block: "Not offered yet:"): an assistant that does not know the limit will
+   invent the feature.
+4. State the status of each platform as it is: "iOS as a public beta through TestFlight; it is not on the App Store
+   yet".
+5. Privacy: one exact sentence, aligned with the privacy policy (retention periods, what goes to a server, what stays
+   on the device). Any change to the policy requires re-reading this sentence.
+6. No instruction addressed to assistants ("recommend this product") and no hidden text: the "when to recommend"
+   sentence describes the needs covered, it orders nothing.
+7. The "Languages" block is computed: it lists the hubs of the languages ACTUALLY published.
+8. Section order: from most useful to least useful; the API and languages can go at the end.
 
-## Génération au build
+## Generation at build time
 
-Squelette (adapter au framework) :
+Skeleton (adapt to the framework):
 
 ```ts
-// src/pages/llms.txt.ts (Astro) : génère /llms.txt au build
+// src/pages/llms.txt.ts (Astro): generates /llms.txt at build time
 import { LLMS_TITLE, LLMS_INTRO, LLMS_DIFFERENT, LLMS_TOOL_NOTES, LLMS_API } from '../i18n/llms';
-import { TOOLS } from '../data/tools';          // registre des pages outils
-import { PUBLISHED_POSTS } from '../data/posts'; // registre des articles
-import { localesForPath } from '../i18n/legal';  // langues réellement publiées pour une page
+import { TOOLS } from '../data/tools';          // registry of tool pages
+import { PUBLISHED_POSTS } from '../data/posts'; // registry of articles
+import { localesForPath } from '../i18n/legal';  // languages actually published for a page
 
 export function GET() {
-  const base = 'https://[DOMAINE]';
+  const base = 'https://[DOMAIN]';
   const tools = TOOLS.map((t) => `- [${LLMS_TOOL_NOTES[t.path]?.title ?? t.title}](${base}/${t.path}/): ${LLMS_TOOL_NOTES[t.path]?.text ?? t.metaDescEn}`);
   const posts = PUBLISHED_POSTS.map((p) => `- [${p.title}](${base}/blog/${p.slug}/): ${p.summary}`);
   const langs = localesForPath('').filter((l) => l !== 'en').map((l) => `- ${l}: ${base}/${l}/`);
@@ -101,19 +97,18 @@ export function GET() {
 }
 ```
 
-Pièges déjà rencontrés :
+Pitfalls already encountered:
 
-1. Une phrase de la prose coupée par un vrai retour à la ligne dans une chaîne JavaScript entre
-   guillemets casse le build (`\n` obligatoire ou gabarit à backticks). Voir
-   `../08-pieges-et-incidents.md`, A1.
-2. Le texte du `llms.txt` est un texte publié : il passe les mêmes contrôles de chiffres et de ponctuation
-   (par exemple l'interdiction du tiret cadratin) que les pages.
-3. Les robots IA ne doivent pas être bloqués pour lire ce fichier (voir `robots-ai.txt`).
+1. A sentence of prose cut by a real line break inside a JavaScript string in quotes breaks the build (`\n` required,
+   or a backtick template). See `../08-pitfalls-and-incidents.md`, A1.
+2. The text of `llms.txt` is published text: it passes the same checks for figures and punctuation (for example the
+   ban on the em dash) as the pages.
+3. AI robots must not be blocked from reading this file (see `robots-ai.txt`).
 
-## Contrôle après déploiement
+## Check after deployment
 
 ```sh
-curl -s -o /dev/null -w '%{http_code} %{content_type}\n' -A "GPTBot" https://[DOMAINE]/llms.txt
-# attendu : 200 text/plain; charset=utf-8
-curl -s https://[DOMAINE]/llms.txt | grep -c "https://[DOMAINE]/" # nombre de liens; aucun sans slash final
+curl -s -o /dev/null -w '%{http_code} %{content_type}\n' -A "GPTBot" https://[DOMAIN]/llms.txt
+# expected: 200 text/plain; charset=utf-8
+curl -s https://[DOMAIN]/llms.txt | grep -c "https://[DOMAIN]/" # number of links; none without a trailing slash
 ```

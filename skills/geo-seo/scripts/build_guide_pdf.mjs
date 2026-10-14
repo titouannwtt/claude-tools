@@ -1,20 +1,20 @@
 #!/usr/bin/env node
-// Assemble references/*.md en un seul guide PDF (couverture, table des matières, numéros de page).
+// Assembles references/*.md into a single PDF guide (cover, table of contents, page numbers).
 //
-//   MARKED_MODULE=/chemin/vers/node_modules/marked/lib/marked.esm.js \
-//   PLAYWRIGHT_MODULE=/chemin/vers/node_modules/playwright/index.mjs \
-//   node build_guide_pdf.mjs [sortie.pdf]
+//   MARKED_MODULE=/path/to/node_modules/marked/lib/marked.esm.js \
+//   PLAYWRIGHT_MODULE=/path/to/node_modules/playwright/index.mjs \
+//   node build_guide_pdf.mjs [output.pdf]
 //
-// Les chemins des modules sont des valeurs locales (local.env), jamais versionnées.
-// Prérequis : Chromium de Playwright installé (`npx playwright install chromium`).
+// The module paths are local values (local.env), never versioned.
+// Prerequisite: Playwright's Chromium installed (`npx playwright install chromium`).
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const refs = path.join(here, '..', 'references');
-const out = path.resolve(process.argv[2] || path.join(here, '..', 'references', 'GUIDE-COMPLET.pdf'));
-const need = (name) => { if (!process.env[name]) { console.error(`${name} manquant (voir l'en-tête du script)`); process.exit(2); } return process.env[name]; };
+const out = path.resolve(process.argv[2] || path.join(here, '..', 'references', 'COMPLETE-GUIDE.pdf'));
+const need = (name) => { if (!process.env[name]) { console.error(`${name} missing (see the script header)`); process.exit(2); } return process.env[name]; };
 const { marked } = await import(pathToFileURL(need('MARKED_MODULE')).href);
 const { chromium } = await import(pathToFileURL(need('PLAYWRIGHT_MODULE')).href);
 
@@ -42,11 +42,11 @@ for (const f of files) {
   body += `<section class="chap">${marked.parse(md, { renderer, gfm: true })}</section>\n`;
 }
 
-let annex = '<section class="chap"><h1 class="chapter" id="annexes">Annexes : modèles prêts à adapter</h1>';
-toc.push({ d: 1, id: 'annexes', t: 'Annexes : modèles prêts à adapter' });
+let annex = '<section class="chap"><h1 class="chapter" id="annexes">Appendices: ready-to-adapt templates</h1>';
+toc.push({ d: 1, id: 'annexes', t: 'Appendices: ready-to-adapt templates' });
 for (const t of templates) {
   const raw = fs.readFileSync(path.join(refs, 'templates', t), 'utf8');
-  const id = `annexe-${slug(t)}`;
+  const id = `appendix-${slug(t)}`;
   toc.push({ d: 2, id, t });
   annex += `<h2 id="${id}">${esc(t)}</h2>` + (t.endsWith('.md')
     ? marked.parse(raw, { gfm: true }) : `<pre><code>${esc(raw)}</code></pre>`);
@@ -55,7 +55,7 @@ annex += '</section>';
 
 const tocHtml = toc.map((e) => `<li class="t${e.d}"><a href="#${e.id}">${esc(e.t)}</a></li>`).join('\n');
 const today = new Date().toISOString().slice(0, 10);
-const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Guide complet GEO et SEO</title><style>
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Complete GEO and SEO guide</title><style>
 @page { size: A4; margin: 20mm 17mm 20mm 17mm; }
 body { font: 10.5pt/1.5 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; color: #1c1c1c; }
 .cover { height: 235mm; display: flex; flex-direction: column; justify-content: center; page-break-after: always; }
@@ -78,10 +78,10 @@ pre code { background: none; padding: 0; }
 blockquote { margin: 3mm 0; padding: 1mm 4mm; border-left: 3px solid #2f6f5e; color: #444; background: #f7faf9; }
 a { color: #1d5d92; }
 </style></head><body>
-<section class="cover"><h1>Guide complet du référencement Google et assistants IA</h1>
-<p>Méthode, pratiques, ajustements et exemples issus d'une refonte réelle de 700 pages en 10 langues : audit mesuré, technique, contenu, traductions, soumission, mesure, actions hors site, pièges rencontrés et procédure autonome.</p>
-<small>Version du ${today}. Exemple travaillé : jam-jam.org. Généré à partir de la base de connaissance du skill geo-seo.</small></section>
-<section class="toc"><h1>Table des matières</h1><ul>${tocHtml}</ul></section>
+<section class="cover"><h1>Complete guide to Google and AI assistant search visibility</h1>
+<p>Method, practices, adjustments and examples drawn from a real overhaul of 700 pages in 10 languages: measured audit, technical work, content, translations, submission, measurement, off-site actions, pitfalls met and autonomous procedure.</p>
+<small>Version of ${today}. Worked example: jam-jam.org. Generated from the geo-seo skill knowledge base.</small></section>
+<section class="toc"><h1>Table of contents</h1><ul>${tocHtml}</ul></section>
 ${body}
 ${annex}
 </body></html>`;

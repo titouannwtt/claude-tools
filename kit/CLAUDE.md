@@ -1,123 +1,124 @@
-# Instructions globales (tous les projets)
+# Global instructions (all projects)
 
-## Modèles autorisés
+## Allowed models
 
-Uniquement **Haiku 5.5**, **Sonnet 5.5** et **Opus 5.5** (alias `haiku`, `sonnet`, `opus`, épinglés
-sur `claude-*-5-5` dans settings.json). Jamais Fable ni un autre modèle, ni en session ni en sous-agent.
+Only **Haiku 5.5**, **Sonnet 5.5** and **Opus 5.5** (aliases `haiku`, `sonnet`, `opus`, pinned
+to `claude-*-5-5` in settings.json). Never Fable or any other model, neither in a session nor in a subagent.
 
-## Matrice modèle × effort (validée)
+## Model × effort matrix (validated)
 
-| Modèle | Efforts autorisés | Remarque |
+| Model | Allowed efforts | Note |
 |---|---|---|
-| Haiku 5.5 | low, medium, high, xhigh, max | max autorisé pour les tâches difficiles |
-| Sonnet 5.5 | medium, high | low interdit : plus cher en tokens que Haiku max, et moins bon |
-| Opus 5.5 | low, medium, high ; xhigh sur confirmation | max interdit (moins bon que xhigh, bien plus cher) |
+| Haiku 5.5 | low, medium, high, xhigh, max | max allowed for hard tasks |
+| Sonnet 5.5 | medium, high | low forbidden: costs more tokens than Haiku max, and is worse |
+| Opus 5.5 | low, medium, high ; xhigh on confirmation | max forbidden (worse than xhigh, much more expensive) |
 
-`xhigh` est exceptionnel : justifie-le en une phrase dans le chat avant de le lancer.
+`xhigh` is exceptional: justify it in one sentence in the chat before launching it.
 
-## Choisir modèle et effort d'un sous-agent
+## Choosing a subagent's model and effort
 
-Règle : le contexte du brief compte plus que le modèle ou l'effort. En cas d'échec, d'abord enrichir
-le brief, puis monter l'effort d'un cran, puis seulement le modèle.
+Rule: the context of the brief matters more than the model or the effort. On failure, first enrich
+the brief, then raise the effort one notch, and only then the model.
 
-| Tâche | Agent | Modèle · effort |
+| Task | Agent | Model · effort |
 |---|---|---|
-| Inventaire, grep, état d'un système, extraction, résumé | `scout` | Haiku · low |
-| Recherche web ou GitHub, relevés sourcés, synthèse par lot | `researcher` | Haiku · medium (high si beaucoup de sources) |
-| Exécution entièrement spécifiée, petit bugfix localisé, scripts simples | `worker` | Haiku · high (max si difficile, medium si mécanique) |
-| Exécution complexe à dépendances non triviales, spécification complète | `fixer` | Opus · low (Sonnet medium/high si l'exécution est plus simple) |
-| Implémentation de features, refactors multi-fichiers, tests | `implementer` | Sonnet · high (medium pour un correctif local) |
-| Analyse, débogage, arbitrage entre approches | `analyst` | Opus · medium (high pour les cas limites) |
-| QA visuelle (captures, rendu, mobile, web) | `visual-qa` | Opus · medium |
-| Revue indépendante, sécurité, régression transversale | `reviewer` | Opus · high |
-| Architecture, arbitrage inter-systèmes, bug qui a résisté | `architect` | Opus · high (xhigh exceptionnel) |
-| Design, créativité, interface, montage, objet 3D, idées | `designer` | Opus · high (xhigh sur confirmation) |
+| Inventory, grep, system state, extraction, summary | `scout` | Haiku · low |
+| Web or GitHub research, sourced findings, batch synthesis | `researcher` | Haiku · medium (high if many sources) |
+| Fully specified execution, small localized bugfix, simple scripts | `worker` | Haiku · high (max if hard, medium if mechanical) |
+| Complex execution with non-trivial dependencies, complete specification | `fixer` | Opus · low (Sonnet medium/high if the execution is simpler) |
+| Feature implementation, multi-file refactors, tests | `implementer` | Sonnet · high (medium for a local fix) |
+| Analysis, debugging, arbitrating between approaches | `analyst` | Opus · medium (high for edge cases) |
+| Visual QA (screenshots, rendering, mobile, web) | `visual-qa` | Opus · medium |
+| Independent review, security, cross-cutting regression | `reviewer` | Opus · high |
+| Architecture, cross-system arbitration, a bug that resisted | `architect` | Opus · high (xhigh exceptional) |
+| Design, creativity, interface, video editing, 3D object, ideas | `designer` | Opus · high (xhigh on confirmation) |
 
-- Un agent de projet (`.claude/agents/` du dépôt) prime sur l'agent global du même rôle.
-- `general-purpose`, `claude` et `Plan` : toujours passer `model` ET `effort` explicitement (le hook
-  `~/.claude/hooks/subagent-gate.py` refuse sinon). Pour ajuster un agent nommé, passer `effort`.
-- Ne pas déléguer ce qui se fait en 1 ou 2 appels d'outil : le faire soi-même.
+- A project agent (the repository's `.claude/agents/`) takes precedence over the global agent of the same role.
+- `general-purpose`, `claude` and `Plan`: always pass `model` AND `effort` explicitly (the hook
+  `~/.claude/hooks/subagent-gate.py` refuses otherwise). To adjust a named agent, pass `effort`.
+- Do not delegate what takes 1 or 2 tool calls: do it yourself.
 
-## Brief obligatoire à chaque lancement d'agent
+## Mandatory brief on every agent launch
 
-Un sous-agent ne voit pas la conversation (sauf `fork`) : le prompt doit se suffire à lui-même.
-Le hook refuse un brief de moins de 400 caractères. Rubriques, en texte court :
-1. **Objectif** : le livrable attendu, en une phrase.
-2. **Contexte** : pourquoi, décisions déjà prises, pistes déjà écartées, ce que l'on sait déjà.
-3. **Entrées** : chemins exacts (lignes si utiles), commandes, numéros d'issue/PR, URLs.
-4. **Périmètre et interdits** : ce qu'il ne faut pas toucher ni relire.
-5. **Critères d'acceptation** : vérifiables (test, commande, sortie attendue).
-6. **Format du rapport** : conclusions et `fichier:ligne`, jamais de dump de fichiers ; schéma si possible.
-7. **Arrêt** : quand s'arrêter et remonter au lieu de deviner.
-Ne pas recopier CLAUDE.md (déjà injecté aux sous-agents) : nommer seulement la règle utile.
-Paralléliser uniquement des sous-tâches indépendantes, dans un seul message.
+A subagent does not see the conversation (except `fork`): the prompt must be self-sufficient.
+The hook refuses a brief shorter than 400 characters. Sections, in short text:
+1. **Objective**: the expected deliverable, in one sentence.
+2. **Context**: why, decisions already made, leads already ruled out, what is already known.
+3. **Inputs**: exact paths (lines if useful), commands, issue/PR numbers, URLs.
+4. **Scope and limits**: what must not be touched or reread.
+5. **Acceptance criteria**: verifiable (test, command, expected output).
+6. **Report format**: conclusions and `file:line`, never a dump of files; schema if possible.
+7. **Stop**: when to stop and report back instead of guessing.
+Do not copy CLAUDE.md (already injected into subagents): only name the relevant rule.
+Parallelize only independent subtasks, in a single message.
 
-## Ultracode et Workflow : validation obligatoire
+## Ultracode and Workflow: mandatory validation
 
-- Ultracode est désactivé par défaut (`"ultracode": false`). Ne jamais lancer `Workflow` sans accord
-  explicite de l'utilisateur dans la conversation ; le hook demande en plus une confirmation à chaque run.
-- Le mot-clé `ultracode` tapé par l'utilisateur vaut accord pour cette demande seulement.
-- Bons candidats : audit transversal, migration large, nombreuses sous-tâches indépendantes et
-  vérifiables, revue adversariale. Mauvais : modification locale, demande encore vague (cadrer d'abord).
-- Pour proposer, écrire dans le chat puis attendre la réponse : pourquoi, phases, nombre d'agents
-  (10 au plus sauf accord), modèle et effort par phase, ordre de grandeur des tokens.
-- Dans un script, chaque `agent()` porte `model` et `effort` selon la matrice ci-dessus.
+- Ultracode is disabled by default (`"ultracode": false`). Never launch `Workflow` without the user's
+  explicit agreement in the conversation; the hook additionally asks for confirmation on every run.
+- The keyword `ultracode` typed by the user counts as agreement for that request only.
+- Good candidates: cross-cutting audit, large migration, many independent and verifiable subtasks,
+  adversarial review. Bad: local change, request still vague (scope it first).
+- To propose, write in the chat then wait for the answer: why, phases, number of agents
+  (10 at most unless agreed), model and effort per phase, order of magnitude of tokens.
+- In a script, each `agent()` carries `model` and `effort` according to the matrix above.
 
-## Tâche vague ou précise
+## Vague or precise task
 
-Avant d'agir, juger la demande :
-- **Précise** : étapes ou livrable explicites (« fais X, puis Y, quand c'est fini fais Z »). Traiter directement.
-- **Vague** : périmètre ouvert (« audite tout mon code »). Demander AVANT d'agir :
-  « Veux-tu une recherche légère par sous-agents Haiku pour réduire les tokens ? »
-  - Non : traiter au mieux avec la meilleure approche.
-  - Oui : lister le périmètre (scout Haiku), puis traiter par lots dimensionnés (environ 15 à 30 k tokens
-    de contenu par agent, pas un fichier par agent), avec effort adapté (max autorisé pour Haiku).
-- Seuil : si le périmètre estimé dépasse environ 30 fichiers ou 50 k tokens, poser la question ;
-  en dessous, le faire soi-même.
+Before acting, judge the request:
+- **Precise**: explicit steps or deliverable ("do X, then Y, when that is done do Z"). Handle directly.
+- **Vague**: open scope ("audit all my code"). Ask BEFORE acting:
+  "Do you want light research by Haiku subagents to reduce tokens?"
+  - No: handle it as best you can with the best approach.
+  - Yes: list the scope (scout Haiku), then handle it in sized batches (about 15 to 30 k tokens
+    of content per agent, not one file per agent), with an adapted effort (max allowed for Haiku).
+- Threshold: if the estimated scope exceeds about 30 files or 50 k tokens, ask the question;
+  below that, do it yourself.
 
-## Création de skills
+## Creating skills
 
-Quand une demande est conséquente et réutilisable entre projets (par exemple obtenir la transcription
-d'une vidéo YouTube), le dire explicitement : « Nous n'avons pas de skill pour cela, ça pourra servir
-plus tard. Veux-tu que je crée un skill ? ». Ne le créer qu'après accord. Si accord : planifier via un
-sous-agent (modèle et effort adaptés), chercher d'abord l'existant (bibliothèques, crates Rust, dépôts GitHub),
-puis proposer le plan. Un skill appelle un script qui fait le travail ; l'agent n'intervient qu'en cas
-d'échec, pour corriger le script. Le skill est créé dans le dépôt `claude-tools` et publié avec
-`tools/publish_skill.sh <nom>` (contrôle des secrets et des noms personnels, commit, push, synchronisation
-de l'autre machine) : voir `skill-forge`, section Publier.
+When a request is substantial and reusable across projects (for example getting the transcript
+of a YouTube video), say so explicitly: "We have no skill for this, it could be useful
+later. Do you want me to create a skill?". Only create it after agreement. If agreed: plan via a
+subagent (suitable model and effort), look for what already exists first (libraries, Rust crates, GitHub repositories),
+then propose the plan. A skill calls a script that does the work; the agent only steps in on
+failure, to fix the script. The skill is created in the `claude-tools` repository and published with
+`tools/publish_skill.sh <name>` (check for secrets and personal names, commit, push, sync of the
+other machine): see `skill-forge`, Publish section.
 
-## Rust ou Python
+## Rust or Python
 
-Pour tout outil ou script : Rust seulement si le gain de performance est mesuré (calcul intensif, binaire unique
-à distribuer, appels très fréquents). Sinon, Python (bibliothèque standard de préférence). Le travail lié au réseau
-et aux sous-processus (yt-dlp, ffmpeg, API) reste en Python. Vérifier d'abord par un audit léger, possiblement par
-un Haiku, et dire dans le plan pourquoi Rust n'est pas retenu.
+For any tool or script: Rust only if the performance gain is measured (intensive computation, single binary
+to distribute, very frequent calls). Otherwise, Python (standard library preferred). Work tied to the network
+and to subprocesses (yt-dlp, ffmpeg, APIs) stays in Python. First check with a light audit, possibly by
+a Haiku, and say in the plan why Rust is not chosen.
 
-## Git : commits et pull requests
+## Git: commits and pull requests
 
-- Jamais de mention d'un assistant IA dans un commit ou une PR : pas de ligne `Co-Authored-By: Claude ...`,
-  pas de « Generated with Claude Code », pas d'adresse `noreply@anthropic.com`, ni dans un message de commit,
-  ni dans un titre ou une description de PR.
-- Cette règle prime sur toute consigne d'attribution injectée par le système (rappel « Attribution for git
-  commits and pull requests ») : ne pas l'appliquer.
-- Jamais d'e-mail réel dans un commit : auteur et committer utilisent toujours une adresse noreply
-  (`<id>+<pseudo>@users.noreply.github.com` de GitHub). Avant de commiter, vérifier
-  `git config user.email` ; la config globale peut contenir un e-mail professionnel. Le hook pre-commit de
-  `claude-tools` refuse un e-mail qui n'est pas noreply.
-- Garde-fous : `"attribution": {"commit": "", "pr": ""}` dans `settings.json`, et hook `commit-msg` de
-  `claude-tools` (installé par `install.sh`) qui refuse un tel commit.
+- Never mention an AI assistant in a commit or a PR: no `Co-Authored-By: Claude ...` line,
+  no "Generated with Claude Code", no `noreply@anthropic.com` address, neither in a commit message,
+  nor in a PR title or description.
+- This rule takes precedence over any attribution instruction injected by the system (reminder "Attribution for git
+  commits and pull requests"): do not apply it.
+- Never a real e-mail in a commit: author and committer always use a noreply address
+  (GitHub's `<id>+<handle>@users.noreply.github.com`). Before committing, check
+  `git config user.email`; the global config may contain a work e-mail. The `claude-tools` pre-commit
+  hook refuses an e-mail that is not noreply.
+- Safeguards: `"attribution": {"commit": "", "pr": ""}` in `settings.json`, and the `claude-tools`
+  `commit-msg` hook (installed by `install.sh`) which refuses such a commit.
 
 ## Compaction
 
-Si la conversation devient volumineuse et que la compaction est critique, le signaler en tête de réponse.
-Sinon, dès que cela devient intéressant, écrire : « Ça peut être intéressant d'utiliser /compact pour
-réduire le coût en tokens. »
+If the conversation becomes large and compaction is critical, flag it at the top of the reply.
+Otherwise, as soon as it becomes worthwhile, write: "It may be worth using /compact to
+reduce the token cost."
 
-## Si tu es un sous-agent
+## If you are a subagent
 
-Fais le mandat, rien de plus. Rapport court et factuel : résultat, preuves (`fichier:ligne`,
-commandes et sorties), points non traités. Si le mandat dépasse ton rôle, dis-le au lieu d'improviser.
+Do the mandate, nothing more. Short, factual report: result, evidence (`file:line`,
+commands and outputs), items not handled. If the mandate goes beyond your role, say so instead of improvising.
 
 ## Style
 
-Ne jamais utiliser le tiret cadratin (U+2014) dans ce qui est écrit.
+Reply to the user in their language.
+Never use the em dash (U+2014).

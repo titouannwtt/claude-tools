@@ -24,9 +24,9 @@ It is built around three goals:
 - **Keep a box of reusable skills.** Transcripts, downloads, blocked web pages, site design audits, SEO for
   AI assistants, Mac automation. Take one, take them all.
 
-> [!NOTE]
-> The skills, agents and `CLAUDE.md` are written in French. Claude follows them just as well; the install
-> prompt below can translate them for you.
+> [!TIP]
+> Everything is written in English, and Claude still answers in your language. To force it, add one line to
+> your own `~/.claude/CLAUDE.md`, for example: `Always reply to the user in French.`
 
 ## How it works
 
@@ -93,7 +93,7 @@ Install https://github.com/titouannwtt/claude-tools for me.
 2. Show me what kit/install_kit.sh would change in ~/.claude, then run it once I agree.
    Never overwrite my existing CLAUDE.md: show me a diff and merge only the sections I pick.
 3. Merge kit/settings.snippet.json into ~/.claude/settings.json without removing my existing keys or hooks.
-4. Ask me whether I want the skills, agents and CLAUDE.md translated to English, and do it if I say yes.
+4. Ask me which language Claude should reply in, and add that rule to my ~/.claude/CLAUDE.md.
 5. List the skills now available and the dependencies still missing (yt-dlp, ffmpeg, Playwright...).
 ```
 

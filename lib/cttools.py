@@ -1,6 +1,6 @@
-"""Fonctions communes aux skills de claude-tools (réglages locaux, proxy de repli).
+"""Helpers shared by the claude-tools skills (local settings, fallback proxy).
 
-local.env est lu sans jamais être affiché : les valeurs (proxy) ne sortent pas de ce module vers un journal.
+local.env is read but never displayed: its values (proxy) never leave this module towards a log.
 Python 3.9 compatible.
 """
 import os
@@ -11,7 +11,7 @@ PROXY_KEYS = ("IPROYAL_RESIDENTIAL_URL", "IPROYAL_PROXY_URL")
 
 
 def load_local_env(explicit=None):
-    """Lit local.env (KEY=VALUE) : chemin explicite, variable CLAUDE_TOOLS_LOCAL, ou racine du dépôt."""
+    """Read local.env (KEY=VALUE): explicit path, CLAUDE_TOOLS_LOCAL variable, or repo root."""
     candidates = [explicit, os.environ.get("CLAUDE_TOOLS_LOCAL"), str(REPO_ROOT / "local.env")]
     for candidate in candidates:
         if candidate and Path(candidate).is_file():
@@ -26,6 +26,6 @@ def load_local_env(explicit=None):
 
 
 def configured_proxy(explicit_env=None):
-    """URL du proxy résidentiel configuré, ou None."""
+    """URL of the configured residential proxy, or None."""
     values = load_local_env(explicit_env)
     return next((values[key] for key in PROXY_KEYS if values.get(key)), None)

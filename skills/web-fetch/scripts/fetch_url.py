@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""Récupère une page web, avec repli sur le proxy résidentiel si l'accès direct est bloqué.
+"""Fetch a web page, falling back to the residential proxy if direct access is blocked.
 
-Usage : fetch_url.py <url> [--text] [--out FICHIER] [--no-proxy] [--force-proxy] [--timeout S] [--max-bytes N]
-  --text         extrait le texte lisible du HTML (sans balises script/style)
-  --out          écrit le corps dans un fichier au lieu de l'inclure dans le JSON
-  --no-proxy     n'utilise jamais le proxy
-  --force-proxy  passe directement par le proxy (sans essai direct)
-Le proxy n'est tenté qu'après un blocage (403, 429, 503, expiration) et seulement s'il est configuré
-dans local.env. Il ne sert pas à contourner une connexion ou un abonnement : seulement un blocage d'adresse IP.
+Usage: fetch_url.py <url> [--text] [--out FILE] [--no-proxy] [--force-proxy] [--timeout S] [--max-bytes N]
+  --text         extract the readable text of the HTML (without script/style tags)
+  --out          write the body to a file instead of including it in the JSON
+  --no-proxy     never use the proxy
+  --force-proxy  go through the proxy directly (no direct attempt)
+The proxy is only tried after a block (403, 429, 503, timeout) and only if it is configured
+in local.env. It is not meant to bypass a login or a subscription: only an IP address block.
 
-Sortie : JSON sur stdout (url, status, via, content_type, bytes, text|file). Codes de sortie :
-  0 succès ; 1 erreur inattendue ; 2 URL invalide ; 4 bloqué même avec le proxy (ou proxy absent) ; 6 erreur HTTP
-  hors blocage (404, 500...) ; 7 réseau injoignable.
-Python 3.9 compatible, bibliothèque standard uniquement.
+Output: JSON on stdout (url, status, via, content_type, bytes, text|file). Exit codes:
+  0 success; 1 unexpected error; 2 invalid URL; 4 blocked even with the proxy (or proxy missing); 6 HTTP error
+  other than a block (404, 500...); 7 network unreachable.
+Python 3.9 compatible, standard library only.
 """
 import argparse
 import json
@@ -76,12 +76,12 @@ def html_to_text(html):
 def validate_url(url):
     parsed = urllib.parse.urlparse(url)
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
-        raise ValueError("URL http(s) attendue : %s" % url)
+        raise ValueError("http(s) URL expected: %s" % url)
     return url
 
 
 def request(url, proxy, timeout, max_bytes):
-    """Retourne (status, content_type, corps en octets, charset). Lève Blocked sur blocage, URLError sur réseau."""
+    """Return (status, content_type, body as bytes, charset). Raises Blocked on a block, URLError on network failure."""
     handlers = [urllib.request.ProxyHandler({"http": proxy, "https": proxy} if proxy else {})]
     opener = urllib.request.build_opener(*handlers, urllib.request.HTTPSHandler(context=ssl.create_default_context()))
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/html,*/*;q=0.8",
@@ -98,16 +98,16 @@ def request(url, proxy, timeout, max_bytes):
     except (TimeoutError, urllib.error.URLError, OSError) as error:
         reason = getattr(error, "reason", error)
         if isinstance(reason, TimeoutError) or "timed out" in str(reason).lower():
-            raise Blocked("expiration")
+            raise Blocked("timeout")
         raise
 
 
 def fetch(url, timeout, max_bytes, use_proxy_mode, local_env=None):
-    """use_proxy_mode : 'auto' (repli), 'never', 'always'. Retourne (réponse, via)."""
+    """use_proxy_mode: 'auto' (fallback), 'never', 'always'. Return (response, via)."""
     proxy = cttools.configured_proxy(local_env)
     if use_proxy_mode == "always":
         if not proxy:
-            raise Blocked("proxy absent de local.env")
+            raise Blocked("proxy missing from local.env")
         return request(url, proxy, timeout, max_bytes), "proxy"
     try:
         return request(url, None, timeout, max_bytes), "direct"
@@ -115,7 +115,7 @@ def fetch(url, timeout, max_bytes, use_proxy_mode, local_env=None):
         if use_proxy_mode == "never":
             raise
         if not proxy:
-            raise Blocked("%s ; proxy de repli non configuré" % direct_block)
+            raise Blocked("%s; fallback proxy not configured" % direct_block)
         return request(url, proxy, timeout, max_bytes), "proxy"
 
 
@@ -147,9 +147,9 @@ def main(argv=None):
     try:
         (status, content_type, body, charset), via = fetch(args.url, args.timeout, args.max_bytes, mode)
     except Blocked as error:
-        return emit({"error": "accès bloqué : %s" % error, "url": args.url}, EXIT_BLOCKED)
+        return emit({"error": "access blocked: %s" % error, "url": args.url}, EXIT_BLOCKED)
     except (urllib.error.URLError, OSError) as error:
-        return emit({"error": "réseau injoignable : %s" % getattr(error, "reason", error), "url": args.url},
+        return emit({"error": "network unreachable: %s" % getattr(error, "reason", error), "url": args.url},
                     EXIT_NETWORK)
     payload = {"url": args.url, "status": status, "via": via, "content_type": content_type, "bytes": len(body)}
     if status >= 400:

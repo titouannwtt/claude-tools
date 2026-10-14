@@ -1,57 +1,57 @@
 ---
 name: video-transcript
-description: Obtenir la transcription d'une vidéo YouTube à partir de son URL, pour la lire, la résumer ou l'intégrer à un projet. Utiliser quand l'utilisateur donne un lien YouTube et demande ce qui y est dit, sa transcription, ses sous-titres, ou une analyse de son contenu.
+description: Get the transcript of a YouTube video from its URL, to read it, summarize it or integrate it into a project. Use when the user gives a YouTube link and asks what is said in it, its transcript, its subtitles, or an analysis of its content.
 ---
 
 # video-transcript
 
-Objectif : transformer une vidéo YouTube en texte horodaté, puis la comprendre à partir de ce texte.
-Le script fait tout le travail (zéro token de modèle). Ton rôle : lancer, lire le résultat, réparer le script si besoin.
+Objective: turn a YouTube video into timestamped text, then understand it from that text.
+The script does all the work (zero model tokens). Your role: run it, read the result, repair the script if needed.
 
-## Commandes
+## Commands
 
-Script : `~/.claude/skills/video-transcript/scripts/transcript.py`. Il écrit toujours du JSON sur stdout.
+Script: `~/.claude/skills/video-transcript/scripts/transcript.py`. It always writes JSON to stdout.
 
-1. **Voie A, sous-titres existants (à essayer en premier, rapide et sans téléchargement vidéo)** :
-   `python3 <script> subs "<url>" --lang fr,en --out <dossier>`
-2. **Voie B, audio puis transcription locale (si la voie A n'a rien trouvé)** :
-   `python3 <script> audio "<url>" --lang fr --model small --out <dossier>`
-3. **Fichier audio déjà présent** : `python3 <script> transcribe <fichier> --out <dossier>`
-4. **Vérifier les dépendances** : `python3 <script> doctor`
+1. **Route A, existing subtitles (try first, fast and no video download)**:
+   `python3 <script> subs "<url>" --lang fr,en --out <folder>`
+2. **Route B, audio then local transcription (if route A found nothing)**:
+   `python3 <script> audio "<url>" --lang fr --model small --out <folder>`
+3. **Audio file already present**: `python3 <script> transcribe <file> --out <folder>`
+4. **Check the dependencies**: `python3 <script> doctor`
 
-## Codes de sortie et réaction
+## Exit codes and reaction
 
-| Code | Sens | Action |
+| Code | Meaning | Action |
 |---|---|---|
-| 0 | Succès | Lire le `.txt` (lignes `[hh:mm:ss] texte`) ou le `.json` (segments). |
-| 3 | Aucun sous-titre | Lancer la voie B (`audio`). |
-| 4 | Téléchargement bloqué (429, 403, « not a bot », IP bloquée) | 1. Mettre yt-dlp à jour (`brew upgrade yt-dlp` ou `pip install -U yt-dlp`) : un 403 vient souvent d'une version périmée. 2. Relancer. 3. Si ça bloque encore, relancer **une seule fois** avec `--use-proxy`. Ne jamais utiliser le proxy sans blocage. |
-| 5 | Dépendance manquante | Installer ce qui est indiqué dans le message (`pip install -U yt-dlp`, `pip install faster-whisper`, ffmpeg). |
-| 2 | URL ou fichier invalide | Demander l'URL correcte. |
-| 1 | Erreur inattendue | Lire le message, corriger le script, relancer (voir Réparation). |
+| 0 | Success | Read the `.txt` (lines `[hh:mm:ss] text`) or the `.json` (segments). |
+| 3 | No subtitles | Run route B (`audio`). |
+| 4 | Download blocked (429, 403, "not a bot", blocked IP) | 1. Update yt-dlp (`brew upgrade yt-dlp` or `pip install -U yt-dlp`): a 403 often comes from an outdated version. 2. Rerun. 3. If it still blocks, rerun **only once** with `--use-proxy`. Never use the proxy without a block. |
+| 5 | Missing dependency | Install what the message indicates (`pip install -U yt-dlp`, `pip install faster-whisper`, ffmpeg). |
+| 2 | Invalid URL or file | Ask for the correct URL. |
+| 1 | Unexpected error | Read the message, fix the script, rerun (see Repair). |
 
-## Réparation
+## Repair
 
-Si le script échoue sans code attendu (1), ou si une sortie est incohérente :
-1. Lire le message d'erreur complet.
-2. Corriger le script dans `<claude-tools>/skills/video-transcript/scripts/transcript.py` (le lien symbolique pointe dessus), et lancer `python3 -m unittest discover -s tests` dans le dossier du skill.
-3. Relancer la commande. Deux tentatives au plus, puis remonter le problème à l'utilisateur avec le message exact.
+If the script fails without an expected code (1), or if an output is inconsistent:
+1. Read the full error message.
+2. Fix the script in `<claude-tools>/skills/video-transcript/scripts/transcript.py` (the symbolic link points to it), and run `python3 -m unittest discover -s tests` in the skill's folder.
+3. Rerun the command. Two attempts at most, then report the problem to the user with the exact message.
 
-## Installation des dépendances
+## Installing the dependencies
 
-- yt-dlp et ffmpeg : Homebrew (Mac) ou paquets du système (VPS).
-- faster-whisper : sur le Mac, dans un environnement dédié `~/.venvs/video-transcript` (Python de Homebrew, PEP 668).
-  Le script bascule tout seul vers cet environnement. Sur le VPS, `pip install --user faster-whisper`.
-- Dans les deux cas, `av` doit rester sous la version 16 (`pip install "av<16"`) : les versions récentes
-  retirent un paramètre que faster-whisper utilise.
+- yt-dlp and ffmpeg: Homebrew (Mac) or system packages (VPS).
+- faster-whisper: on the Mac, in a dedicated environment `~/.venvs/video-transcript` (Homebrew's Python, PEP 668).
+  The script switches to that environment by itself. On the VPS, `pip install --user faster-whisper`.
+- In both cases, `av` must stay below version 16 (`pip install "av<16"`): recent versions
+  remove a parameter that faster-whisper uses.
 
-## Proxy (repli)
+## Proxy (fallback)
 
-- Le proxy IPRoyal n'est utilisé qu'avec `--use-proxy`, et seulement après un blocage (code 4).
-- Son adresse vient de `local.env` à la racine de `claude-tools` (clé `IPROYAL_RESIDENTIAL_URL`, le proxy résidentiel ; ignoré par git). Ne pas utiliser le Web Unblocker : il intercepte le TLS et casse yt-dlp. Budget limité (2 Go) : privilégier `subs` avec le proxy.
-- Ne jamais afficher la valeur du proxy, ni dans le chat, ni dans un fichier versionné.
+- The IPRoyal proxy is used only with `--use-proxy`, and only after a block (code 4).
+- Its address comes from `local.env` at the root of `claude-tools` (key `IPROYAL_RESIDENTIAL_URL`, the residential proxy; ignored by git). Do not use the Web Unblocker: it intercepts TLS and breaks yt-dlp. Limited budget (2 GB): prefer `subs` with the proxy.
+- Never display the proxy value, neither in the chat nor in a versioned file.
 
-## Après la transcription
+## After the transcript
 
-Lire le `.txt`, puis répondre à la question de l'utilisateur à partir du texte, en citant les horodatages utiles
-(`[00:12:40]`). Si la vidéo est longue, résumer par tranches plutôt que de tout recopier.
+Read the `.txt`, then answer the user's question from the text, citing the useful timestamps
+(`[00:12:40]`). If the video is long, summarize in sections rather than copying everything.

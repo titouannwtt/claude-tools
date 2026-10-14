@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Installation idempotente : lie chaque skill du dépôt dans ~/.claude/skills et installe les contrôles git
-# (pre-commit : secrets et données personnelles ; commit-msg : aucune mention d'assistant IA).
-# Variable optionnelle : CLAUDE_HOME (défaut ~/.claude).
+# Idempotent install: links each skill of the repo into ~/.claude/skills and installs the git checks
+# (pre-commit: secrets and personal data; commit-msg: no mention of an AI assistant).
+# Optional variable: CLAUDE_HOME (default ~/.claude).
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -14,12 +14,12 @@ for dir in "$root"/skills/*/; do
   target="$dest/$name"
   if [[ -L "$target" ]]; then
     ln -sfn "${dir%/}" "$target"
-    echo "lien mis à jour : $name"
+    echo "link updated: $name"
   elif [[ -e "$target" ]]; then
-    echo "ignoré (existe et n'est pas un lien) : $name" >&2
+    echo "skipped (exists and is not a link): $name" >&2
   else
     ln -s "${dir%/}" "$target"
-    echo "lien créé : $name"
+    echo "link created: $name"
   fi
 done
 
@@ -29,17 +29,17 @@ if [[ -d "$root/.git" ]]; then
     printf '%s\n' '#!/bin/sh' '# claude-tools check_repo' \
       'exec python3 "$(git rev-parse --show-toplevel)/tools/check_repo.py" --staged' > "$hook"
     chmod +x "$hook"
-    echo "contrôle avant commit installé"
+    echo "pre-commit check installed"
   else
-    echo "hook pre-commit existant conservé (non géré par ce dépôt)" >&2
+    echo "existing pre-commit hook kept (not managed by this repo)" >&2
   fi
   hook="$root/.git/hooks/commit-msg"
   if [[ ! -e "$hook" ]] || grep -q "claude-tools check_repo" "$hook"; then
     printf '%s\n' '#!/bin/sh' '# claude-tools check_repo' \
       'exec python3 "$(git rev-parse --show-toplevel)/tools/check_repo.py" --commit-msg "$1"' > "$hook"
     chmod +x "$hook"
-    echo "contrôle du message de commit installé (aucune mention d'assistant IA)"
+    echo "commit message check installed (no mention of an AI assistant)"
   else
-    echo "hook commit-msg existant conservé (non géré par ce dépôt)" >&2
+    echo "existing commit-msg hook kept (not managed by this repo)" >&2
   fi
 fi

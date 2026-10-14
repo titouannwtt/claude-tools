@@ -1,19 +1,19 @@
-# Requêtes d'analyse Search Console
+# Search Console analysis queries
 
-Gabarit d'analyse pour la phase 2 (audit) et pour le suivi mensuel (voir `../07-mesure.md`, §2). Tout
-passe par l'API `searchanalytics.query` en lecture seule. Aucune clé n'est écrite dans les fichiers : le
-chemin de la clé du compte de service vient de la variable d'environnement `GSC_SERVICE_ACCOUNT`.
+Analysis template for phase 2 (audit) and for monthly tracking (see `../07-measurement.md`, §2). Everything goes through
+the `searchanalytics.query` API, read-only. No key is written in the files: the path to the service account key comes
+from the `GSC_SERVICE_ACCOUNT` environment variable.
 
-## 0. Accès (une fois)
+## 0. Access (once)
 
-1. Ajouter l'adresse du compte de service comme utilisateur de la propriété `sc-domain:[DOMAINE]`
-   (Search Console, Paramètres, Utilisateurs et autorisations).
-2. Portée : `https://www.googleapis.com/auth/webmasters.readonly`.
-3. Variables d'environnement : `GSC_SERVICE_ACCOUNT` (chemin du fichier de clé, hors dépôt),
-   `GSC_SITE` (par exemple `sc-domain:[DOMAINE]`).
+1. Add the service account's address as a user of the property `sc-domain:[DOMAIN]` (Search Console, Settings, Users
+   and permissions).
+2. Scope: `https://www.googleapis.com/auth/webmasters.readonly`.
+3. Environment variables: `GSC_SERVICE_ACCOUNT` (path to the key file, outside the repository), `GSC_SITE` (for
+   example `sc-domain:[DOMAIN]`).
 
 ```python
-# gsc.py : fonction de lecture paginée. Dépendances : google-auth, requests, pandas.
+# gsc.py: paginated read function. Dependencies: google-auth, requests, pandas.
 import os, requests, pandas as pd
 from google.oauth2 import service_account
 from google.auth.transport.requests import Request
@@ -28,7 +28,7 @@ def _token():
     return creds.token
 
 def query(start, end, dimensions, filters=None, page_size=25000):
-    """Toutes les lignes de searchanalytics.query (pagination par startRow)."""
+    """All rows of searchanalytics.query (paginated by startRow)."""
     url = "https://www.googleapis.com/webmasters/v3/sites/%s/searchAnalytics/query" % requests.utils.quote(SITE, safe="")
     headers = {"Authorization": "Bearer " + _token()}
     rows, start_row = [], 0
@@ -49,36 +49,36 @@ def query(start, end, dimensions, filters=None, page_size=25000):
                          "ctr": r["ctr"], "position": r["position"]} for r in rows])
     return out
 
-# Exemple : 90 jours (le dernier jour disponible a 2 à 3 jours de retard)
+# Example: 90 days (the latest available day is 2 to 3 days late)
 # df = query("2026-07-10", "2026-10-09", ["query", "page"])
 # df.to_csv("gsc-90j.csv", index=False)
 ```
 
-Le script de soumission de sitemaps de la campagne (`scripts/gsc-submit-sitemaps.py`) utilise la portée
-`webmasters` (écriture); pour l'analyse, utiliser la portée en lecture seule.
+The campaign's sitemap submission script (`scripts/gsc-submit-sitemaps.py`) uses the `webmasters` scope (write); for
+analysis, use the read-only scope.
 
-## 1. Totaux et découpages de base
+## 1. Totals and basic breakdowns
 
-| Besoin | Dimensions | Filtre |
+| Need | Dimensions | Filter |
 |---|---|---|
-| Totaux de la propriété | aucune (ou `["date"]` pour la courbe) | |
-| Vue par page | `["page"]` | |
-| Marché réel de chaque langue | `["country"]` | `page` contient `/fr/` |
-| Mobile contre ordinateur | `["device"]` | |
-| Requête + page (analyses ci-dessous) | `["query","page"]` | |
+| Property totals | none (or `["date"]` for the trend) | |
+| Per-page view | `["page"]` | |
+| Real market of each language | `["country"]` | `page` contains `/fr/` |
+| Mobile vs desktop | `["device"]` | |
+| Query + page (analyses below) | `["query","page"]` | |
 
-Note : le total de la propriété est supérieur à la somme des lignes `query+page` (requêtes anonymisées
-absentes des lignes). Comparez toujours des chiffres de même nature.
+Note: the property total is higher than the sum of the `query+page` rows (anonymized queries are absent from the
+rows). Always compare figures of the same kind.
 
-Filtre par langue (exemple : pages françaises) :
+Filter by language (example: French pages):
 
 ```python
 fr = query(start, end, ["query", "page"],
            filters=[{"dimension": "page", "operator": "contains", "expression": "/fr/"}])
 ```
 
-Pour la langue racine (sans préfixe), filtrer par exclusion : `operator: "notContains"` pour chaque préfixe
-de langue, ou calculer la langue dans pandas depuis l'URL.
+For the root language (no prefix), filter by exclusion: `operator: "notContains"` for each language prefix, or compute
+the language in pandas from the URL.
 
 ```python
 LANGS = ["fr","es","de","it","pt","nl","pl","ja","ko"]
@@ -89,10 +89,10 @@ def lang_of(url):
 df["lang"] = df["page"].map(lang_of)
 ```
 
-## 2. Positions 5 à 20 : les gains rapides
+## 2. Positions 5 to 20: quick wins
 
-Requêtes proches de la première page ou du haut de la seconde, avec du volume : réécrire le titre et la
-description (voir `../07-mesure.md`, §2.4), enrichir la section qui répond.
+Queries close to the first page or at the top of the second, with volume: rewrite the title and description (see
+`../07-measurement.md`, §2.4), enrich the section that answers.
 
 ```python
 q = df[(df.position >= 5) & (df.position <= 20) & (df.impressions >= 30)]
@@ -100,16 +100,16 @@ q = q.sort_values("impressions", ascending=False)
 print(q[["query","page","impressions","clicks","ctr","position"]].head(50).to_string(index=False))
 ```
 
-Seuils d'impressions à adapter : 30 pour un petit site (sur 90 jours), 100 ou plus pour un grand. Exemple
-de la campagne : `accordeur basse en ligne`, 679 impressions, position 9,0, 6 clics.
+Impression thresholds to adapt: 30 for a small site (over 90 days), 100 or more for a large one. Campaign example:
+`accordeur basse en ligne`, 679 impressions, position 9.0, 6 clicks.
 
-## 3. CTR faible à position correcte
+## 3. Low CTR at a decent position
 
-Pages ou requêtes qui apparaissent mais ne reçoivent pas de clics : le titre ou la description ne donne
-pas envie, ou la requête n'est pas servie par l'intention de la page.
+Pages or queries that appear but get no clicks: the title or description does not make people want to click, or the
+query is not served by the page's intent.
 
 ```python
-# Courbe de CTR attendue calculée sur VOS données, par tranche de position
+# Expected CTR curve computed on YOUR data, per position bracket
 bins = [0,3,7,10,20,50,1000]
 df["tranche"] = pd.cut(df.position, bins=bins)
 courbe = df.groupby("tranche", observed=True).apply(
@@ -117,22 +117,22 @@ courbe = df.groupby("tranche", observed=True).apply(
                          "ctr": g.clicks.sum() / max(g.impressions.sum(), 1)}))
 print(courbe)
 
-# Lignes sous la courbe : CTR inférieur à la moitié de la médiane de leur tranche, avec du volume
+# Rows below the curve: CTR under half the median of their bracket, with volume
 med = df.groupby("tranche", observed=True).ctr.median()
 df["ctr_attendu"] = df.tranche.map(med).astype(float)
 bas = df[(df.impressions >= 50) & (df.ctr < 0.5 * df.ctr_attendu) & (df.position <= 20)]
 print(bas.sort_values("impressions", ascending=False).head(40)[["query","page","impressions","clicks","ctr","position"]])
 ```
 
-Ne comparez pas la marque au reste : retirer d'abord les requêtes de marque.
+Do not compare the brand with the rest: remove the brand queries first.
 
 ```python
-MARQUE = ["[nom de marque]", "[nom de domaine]", "[variante]"]
+MARQUE = ["[brand name]", "[domain name]", "[variant]"]
 df["marque"] = df["query"].str.lower().apply(lambda s: any(m in s for m in MARQUE))
 hors_marque = df[~df.marque]
 ```
 
-Pages à au moins 100 impressions et CTR sous 1 % (tableau de la campagne) :
+Pages with at least 100 impressions and CTR under 1% (campaign table):
 
 ```python
 pages = df.groupby("page").agg(impressions=("impressions","sum"), clicks=("clicks","sum"),
@@ -141,44 +141,43 @@ pages["ctr"] = pages.clicks / pages.impressions
 print(pages[(pages.impressions >= 100) & (pages.ctr < 0.01)].sort_values("impressions", ascending=False))
 ```
 
-## 4. Pages sans clic
+## 4. Pages without clicks
 
-Pages indexées qui reçoivent des impressions mais zéro clic, et pages du sitemap qui ne reçoivent AUCUNE
-impression (non indexées, mal classées ou sans demande).
+Indexed pages that receive impressions but zero clicks, and sitemap pages that receive NO impressions (not indexed,
+poorly ranked or with no demand).
 
 ```python
 par_page = df.groupby("page").agg(impressions=("impressions","sum"), clicks=("clicks","sum"))
 sans_clic = par_page[(par_page.impressions >= 20) & (par_page.clicks == 0)]
 print(sans_clic.sort_values("impressions", ascending=False).head(40))
 
-# Pages du sitemap absentes de GSC : comparer à la liste des URL du sitemap
+# Sitemap pages absent from GSC: compare with the list of sitemap URLs
 import re, urllib.request
-sm = urllib.request.urlopen("https://[DOMAINE]/sitemap-0.xml").read().decode()
+sm = urllib.request.urlopen("https://[DOMAIN]/sitemap-0.xml").read().decode()
 urls = set(re.findall(r"<loc>([^<]+)</loc>", sm))
 vues = set(df.page)
-print(len(urls - vues), "URL du sitemap sans aucune impression sur la période")
+print(len(urls - vues), "sitemap URLs with no impressions in the period")
 ```
 
-Les pages sans impression se traitent par ordre : (1) est-elle indexée (outil d'inspection d'URL) ? (2) a-t-elle
-un lien interne ? (3) répond-elle à une requête qui existe ? Ne pas ajouter de contenu avant d'avoir
-répondu à ces trois questions.
+Pages with no impressions are handled in order: (1) is it indexed (URL inspection tool)? (2) does it have an internal
+link? (3) does it answer a query that exists? Do not add content before answering these three questions.
 
-## 5. Requêtes sans page : les pages à créer
+## 5. Queries without a page: pages to create
 
-Requêtes avec des impressions pour lesquelles aucune page du site n'est faite : la page qui apparaît est
-l'accueil, un article voisin, ou une page d'une autre langue.
+Queries with impressions for which no page of the site exists: the page that appears is the home page, a neighboring
+article, or a page in another language.
 
-Méthode A (à la main, rapide) : repérer les requêtes dont la page classée n'est PAS une page de besoin.
+Method A (manual, quick): spot the queries whose ranking page is NOT a need page.
 
 ```python
-BESOIN = r"/(tuner|clavier|detection|metronome|accords|gammes|transposer|tablature)/"  # à adapter
+BESOIN = r"/(tuner|clavier|detection|metronome|accords|gammes|transposer|tablature)/"  # to adapt
 pas_besoin = hors_marque[~hors_marque.page.str.contains(BESOIN, regex=True)]
 cand = pas_besoin[pas_besoin.impressions >= 20].sort_values("impressions", ascending=False)
 print(cand.head(60)[["query","page","impressions","position"]])
 ```
 
-Méthode B (avec l'inventaire du build, `geo-inventory.csv`) : requêtes dont aucun mot significatif ne figure
-dans un titre ou un h1 du site.
+Method B (with the build inventory, `geo-inventory.csv`): queries for which no significant word appears in any title or
+h1 of the site.
 
 ```python
 inv = pd.read_csv("geo-inventory.csv")
@@ -192,53 +191,50 @@ cand["sans_page"] = cand["query"].map(sans_page)
 print(cand[cand.sans_page].sort_values("impressions", ascending=False).head(60)[["query","page","impressions","position"]])
 ```
 
-Résultats à lire avec jugement : une requête sans page n'est pas toujours un besoin à servir. Critères de
-la campagne pour créer une page : une intention distincte (une URL par intention), du volume, une
-fonction réelle du produit (vérifiée dans le code), une page qui serait supérieure à ce qui se classe. Par
-exemple, `midi keyboard online` (position 13, sans page dédiée) a donné la page de clavier MIDI; une page
-d'outil inexistant sur le web a été refusée.
+Read the results with judgment: a query without a page is not always a need to serve. Campaign criteria to create a
+page: a distinct intent (one URL per intent), volume, a real product function (verified in the code), a page that
+would be better than what ranks. For example, `midi keyboard online` (position 13, no dedicated page) led to the MIDI
+keyboard page; a tool page for a tool that does not exist on the web was refused.
 
-## 6. Fiche par langue
+## 6. Sheet per language
 
-Produire pour chaque langue un fichier `requetes/<langue>.md` avec :
+For each language, produce a file `requetes/<langue>.md` with:
 
-1. Totaux (clics, impressions, nombre de lignes requête x page).
-2. Par page : impressions, clics, position moyenne et les 8 meilleures requêtes avec impressions et
-   position.
-3. Top 40 des requêtes (requête, page, impressions, clics, CTR, position).
-4. Synthèse thématique (requêtes contenant un mot clé du domaine) et tableau « pages à au moins 100
-   impressions et CTR sous 1 % ».
+1. Totals (clicks, impressions, number of query x page rows).
+2. Per page: impressions, clicks, average position and the top 8 queries with impressions and position.
+3. Top 40 queries (query, page, impressions, clicks, CTR, position).
+4. Thematic summary (queries containing a keyword of the domain) and a table "pages with at least 100 impressions and
+   CTR under 1%".
 
 ```python
 def fiche(df, lang):
     d = df[df.lang == lang]
-    print("Clics", d.clicks.sum(), "Impressions", d.impressions.sum(), "Lignes", len(d))
+    print("Clicks", d.clicks.sum(), "Impressions", d.impressions.sum(), "Rows", len(d))
     top = (d.groupby("page").apply(lambda g: g.sort_values("impressions", ascending=False).head(8))
             .reset_index(drop=True))
     return top
 ```
 
-La fiche de la langue est l'entrée du traducteur pour construire titres et descriptions (voir
-`../05-multilingue.md`, §5).
+The language sheet is the translator's input to build titles and descriptions (see `../05-multilingual.md`, §5).
 
-## 7. Sitemaps et inspection
+## 7. Sitemaps and inspection
 
 ```python
-# Lire l'état des sitemaps (erreurs, avertissements, dernier passage)
+# Read the sitemap status (errors, warnings, last pass)
 site = requests.utils.quote(SITE, safe="")
 r = requests.get("https://www.googleapis.com/webmasters/v3/sites/%s/sitemaps" % site,
                  headers={"Authorization": "Bearer " + _token()}, timeout=30)
 for s in r.json().get("sitemap", []):
-    print(s["path"], "erreurs", s.get("errors"), "avertissements", s.get("warnings"), "dernier passage", s.get("lastDownloaded"))
+    print(s["path"], "errors", s.get("errors"), "warnings", s.get("warnings"), "last pass", s.get("lastDownloaded"))
 ```
 
-L'inspection d'URL individuelle (indexée ou non, canonique choisie par Google) existe dans l'API
-`urlInspection`; elle est limitée en volume quotidien : à réserver aux pages prioritaires.
+Individual URL inspection (indexed or not, canonical chosen by Google) exists in the `urlInspection` API; it is limited
+in daily volume: reserve it for priority pages.
 
-## 8. Rythme
+## 8. Rhythm
 
-| Fréquence | Requêtes à lancer |
+| Frequency | Queries to run |
 |---|---|
-| Hebdomadaire | totaux 28 jours, erreurs de sitemap |
-| Mensuelle | §2 (positions 5 à 20), §3 (CTR faible), §4 (pages sans clic), fiches par langue |
-| Trimestrielle | §5 (requêtes sans page), revue de la liste des besoins du panel |
+| Weekly | 28-day totals, sitemap errors |
+| Monthly | §2 (positions 5 to 20), §3 (low CTR), §4 (pages without clicks), sheets per language |
+| Quarterly | §5 (queries without a page), review of the panel's list of needs |

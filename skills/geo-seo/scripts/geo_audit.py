@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""geo_audit.py : audit en lecture seule du référencement (Google, Bing, assistants IA) d'un site.
+"""geo_audit.py: read-only audit of a site's search visibility (Google, Bing, AI assistants).
 
-Bibliothèque standard uniquement. Chaque sous-commande écrit du JSON sur stdout.
+Standard library only. Each subcommand writes JSON to stdout.
 
     python3 geo_audit.py doctor
-    python3 geo_audit.py robots  https://exemple.org
-    python3 geo_audit.py sitemap https://exemple.org/sitemap-index.xml
-    python3 geo_audit.py page    https://exemple.org/une-page/
-    python3 geo_audit.py bots    https://exemple.org/une-page/
-    python3 geo_audit.py crawl   https://exemple.org --max 40
+    python3 geo_audit.py robots  https://example.org
+    python3 geo_audit.py sitemap https://example.org/sitemap-index.xml
+    python3 geo_audit.py page    https://example.org/a-page/
+    python3 geo_audit.py bots    https://example.org/a-page/
+    python3 geo_audit.py crawl   https://example.org --max 40
 
-Codes de sortie : 0 succès, 2 arguments invalides, 4 réseau inaccessible, 1 erreur inattendue.
-Le script ne modifie rien, n'envoie rien, ne contourne aucune protection.
+Exit codes: 0 success, 2 invalid arguments, 4 network unreachable, 1 unexpected error.
+The script changes nothing, sends nothing, bypasses no protection.
 """
 from __future__ import annotations
 
@@ -29,17 +29,17 @@ from xml.etree import ElementTree as ET
 TIMEOUT = 15
 BROWSER_UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
 
-# Jetons de robots IA et moteurs : (nom, user-agent complet, rôle).
+# AI bot and search engine tokens: (name, full user-agent, role).
 AI_BOTS = {
-    "GPTBot": ("Mozilla/5.0 (compatible; GPTBot/1.1; +https://openai.com/gptbot)", "entraînement OpenAI"),
-    "OAI-SearchBot": ("Mozilla/5.0 (compatible; OAI-SearchBot/1.0; +https://openai.com/searchbot)", "recherche ChatGPT"),
-    "ChatGPT-User": ("Mozilla/5.0 (compatible; ChatGPT-User/1.0; +https://openai.com/bot)", "navigation à la demande ChatGPT"),
-    "ClaudeBot": ("Mozilla/5.0 (compatible; ClaudeBot/1.0; +claudebot@anthropic.com)", "entraînement Anthropic"),  # check-repo: ignore (adresse publique du robot)
-    "Claude-SearchBot": ("Mozilla/5.0 (compatible; Claude-SearchBot/1.0)", "recherche Claude"),
-    "Claude-User": ("Mozilla/5.0 (compatible; Claude-User/1.0)", "navigation à la demande Claude"),
-    "PerplexityBot": ("Mozilla/5.0 (compatible; PerplexityBot/1.0; +https://perplexity.ai/perplexitybot)", "index Perplexity"),
-    "Perplexity-User": ("Mozilla/5.0 (compatible; Perplexity-User/1.0)", "navigation à la demande Perplexity"),
-    "Google-Extended": ("Mozilla/5.0 (compatible; Google-Extended)", "jeton Gemini (robots.txt seulement)"),
+    "GPTBot": ("Mozilla/5.0 (compatible; GPTBot/1.1; +https://openai.com/gptbot)", "OpenAI training"),
+    "OAI-SearchBot": ("Mozilla/5.0 (compatible; OAI-SearchBot/1.0; +https://openai.com/searchbot)", "ChatGPT search"),
+    "ChatGPT-User": ("Mozilla/5.0 (compatible; ChatGPT-User/1.0; +https://openai.com/bot)", "ChatGPT on-demand browsing"),
+    "ClaudeBot": ("Mozilla/5.0 (compatible; ClaudeBot/1.0; +claudebot@anthropic.com)", "Anthropic training"),  # check-repo: ignore (public address of the bot)
+    "Claude-SearchBot": ("Mozilla/5.0 (compatible; Claude-SearchBot/1.0)", "Claude search"),
+    "Claude-User": ("Mozilla/5.0 (compatible; Claude-User/1.0)", "Claude on-demand browsing"),
+    "PerplexityBot": ("Mozilla/5.0 (compatible; PerplexityBot/1.0; +https://perplexity.ai/perplexitybot)", "Perplexity index"),
+    "Perplexity-User": ("Mozilla/5.0 (compatible; Perplexity-User/1.0)", "Perplexity on-demand browsing"),
+    "Google-Extended": ("Mozilla/5.0 (compatible; Google-Extended)", "Gemini token (robots.txt only)"),
     "Googlebot": ("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)", "Google Search, AI Overviews"),
     "Bingbot": ("Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)", "Bing, Copilot, ChatGPT search"),
     "Applebot": ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (Applebot/0.1)", "Apple, Siri"),
@@ -47,8 +47,8 @@ AI_BOTS = {
     "Meta-ExternalAgent": ("meta-externalagent/1.1 (+https://developers.facebook.com/docs/sharing/webmasters/crawler)", "Meta AI"),
     "MistralAI-User": ("Mozilla/5.0 (compatible; MistralAI-User/1.0)", "Le Chat Mistral"),
     "DuckAssistBot": ("Mozilla/5.0 (compatible; DuckAssistBot/1.0)", "DuckDuckGo AI"),
-    "CCBot": ("CCBot/2.0 (https://commoncrawl.org/faq/)", "Common Crawl (corpus d'entraînement)"),
-    "Bytespider": ("Mozilla/5.0 (compatible; Bytespider; spider-feedback@bytedance.com)", "ByteDance"),  # check-repo: ignore (adresse publique du robot)
+    "CCBot": ("CCBot/2.0 (https://commoncrawl.org/faq/)", "Common Crawl (training corpus)"),
+    "Bytespider": ("Mozilla/5.0 (compatible; Bytespider; spider-feedback@bytedance.com)", "ByteDance"),  # check-repo: ignore (public address of the bot)
 }
 
 
@@ -61,7 +61,7 @@ _OPENER = urllib.request.build_opener(NoRedirect)
 
 
 def fetch(url: str, ua: str = BROWSER_UA, follow: bool = False, limit: int = 3_000_000):
-    """Retourne (statut, en-têtes en minuscules, corps en octets, URL finale). Statut 0 si réseau KO."""
+    """Return (status, lowercase headers, body as bytes, final URL). Status 0 if the network fails."""
     seen = 0
     while True:
         req = urllib.request.Request(url, headers={"User-Agent": ua, "Accept": "*/*", "Accept-Encoding": "gzip"})
@@ -91,7 +91,7 @@ def origin(url: str) -> str:
 
 # --------------------------------------------------------------------------- robots.txt
 def parse_robots(text: str):
-    """Retourne (groupes, sitemaps). groupes = liste de {agents:[...], rules:[(allow:bool, chemin)]}."""
+    """Return (groups, sitemaps). groups = list of {agents:[...], rules:[(allow:bool, path)]}."""
     groups, sitemaps, cur, last_was_agent = [], [], None, False
     for raw in text.splitlines():
         line = raw.split("#", 1)[0].strip()
@@ -122,7 +122,7 @@ def _match(pattern: str, path: str) -> bool:
 
 
 def robots_allows(groups, agent: str, path: str) -> bool:
-    """Règle la plus longue gagne, Allow l'emporte à égalité. Groupe le plus spécifique, sinon '*'."""
+    """Longest rule wins, Allow wins a tie. Most specific group, otherwise '*'."""
     agent = agent.lower()
     chosen = [g for g in groups if any(a != "*" and (a in agent or agent in a) for a in g["agents"])]
     if not chosen:
@@ -150,16 +150,16 @@ def cmd_robots(args):
         access[name] = {p: robots_allows(groups, name, p) for p in paths}
     notes = []
     if st != 200:
-        notes.append(f"robots.txt répond {st} : tout est autorisé par défaut, mais aucun sitemap n'est déclaré")
+        notes.append(f"robots.txt returns {st}: everything is allowed by default, but no sitemap is declared")
     if not sitemaps:
-        notes.append("aucun Sitemap: déclaré dans robots.txt")
+        notes.append("no Sitemap: declared in robots.txt")
     for sm in sitemaps:
         sp = urllib.parse.urlsplit(sm).path
         if not robots_allows(groups, "Googlebot", sp):
-            notes.append(f"le sitemap {sm} est bloqué par un Disallow pour Googlebot")
+            notes.append(f"the sitemap {sm} is blocked by a Disallow for Googlebot")
     blocked = [n for n, r in access.items() if not r.get("/", True)]
     if blocked:
-        notes.append("robots IA bloqués sur / : " + ", ".join(blocked))
+        notes.append("AI bots blocked on /: " + ", ".join(blocked))
     return 0, {"url": base + "/robots.txt", "status": st, "sitemaps": sitemaps, "access": access, "notes": notes}
 
 
@@ -168,7 +168,7 @@ NS = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9", "x": "http://www.w3.or
 
 
 def parse_sitemap(xml: bytes):
-    """Retourne ('index'|'urlset', entrées). Entrée = {loc, lastmod, alternates:[(hreflang, href)]}."""
+    """Return ('index'|'urlset', entries). Entry = {loc, lastmod, alternates:[(hreflang, href)]}."""
     root = ET.fromstring(xml)
     kind = "index" if root.tag.endswith("sitemapindex") else "urlset"
     tag = "sitemap" if kind == "index" else "url"
@@ -188,7 +188,7 @@ def load_sitemap(url: str, depth: int = 0, cap: int = 60000):
     try:
         kind, entries = parse_sitemap(body)
     except ET.ParseError as e:
-        return [], [{"url": url, "error": f"XML invalide : {e}"}]
+        return [], [{"url": url, "error": f"invalid XML: {e}"}]
     if kind == "urlset":
         return entries[:cap], []
     urls, errors = [], []
@@ -337,24 +337,24 @@ def analyse_html(html: str, url: str, ignore: tuple = ()) -> dict:
     first = next((x for x in p.paras if len(x.split()) >= 12), "")
     issues = []
     if not p.title:
-        issues.append("titre absent")
+        issues.append("title missing")
     elif len(p.title) > 65:
-        issues.append(f"titre long ({len(p.title)} caractères)")
+        issues.append(f"long title ({len(p.title)} characters)")
     if not desc:
-        issues.append("meta description absente")
+        issues.append("meta description missing")
     elif len(desc) > 160:
-        issues.append(f"description longue ({len(desc)} caractères)")
+        issues.append(f"long description ({len(desc)} characters)")
     if not p.canonical:
-        issues.append("canonical absent")
+        issues.append("canonical missing")
     if len(p.h1) != 1:
-        issues.append(f"{len(p.h1)} balises h1")
+        issues.append(f"{len(p.h1)} h1 tags")
     if words < 300:
-        issues.append(f"contenu mince ({words} mots visibles)")
+        issues.append(f"thin content ({words} visible words)")
     if no_slash:
-        issues.append(f"{no_slash} liens internes sans slash final (redirection probable)")
+        issues.append(f"{no_slash} internal links without trailing slash (likely redirect)")
     ld = jsonld_types(p.jsonld)
     if not ld["types"]:
-        issues.append("aucune donnée structurée")
+        issues.append("no structured data")
     if "noindex" in p.meta.get("robots", "").lower():
         issues.append("noindex")
     return {
@@ -389,9 +389,9 @@ def cmd_bots(args):
         if st == 200 and base is None:
             base = len(body)
         if st == 200 and base and abs(len(body) - base) > base * 0.5:
-            res[name]["note"] = "taille de réponse très différente : contenu servi différemment aux robots ?"
+            res[name]["note"] = "very different response size: content served differently to bots?"
     if all(r["status"] == 0 for r in res.values()):
-        return 4, {"error": "réseau inaccessible", "url": args.url}
+        return 4, {"error": "network unreachable", "url": args.url}
     refused = [n for n, r in res.items() if r["status"] not in (200, 301, 302, 308)]
     return 0, {"url": args.url, "results": res, "refused": refused}
 
@@ -401,7 +401,7 @@ def cmd_crawl(args):
     if not entries:
         entries, errors = load_sitemap(origin(args.url) + "/sitemap.xml")
     if not entries:
-        return 0, {"error": "aucun sitemap lisible", "details": errors}
+        return 0, {"error": "no readable sitemap", "details": errors}
     step = max(1, len(entries) // args.max)
     sample = [e["loc"] for e in entries[::step]][: args.max]
     pages, titles, issues = [], {}, {}
@@ -409,7 +409,7 @@ def cmd_crawl(args):
         st, _, body, final = fetch(u, follow=True)
         if st != 200:
             pages.append({"url": u, "status": st})
-            issues.setdefault(f"statut {st}", []).append(u)
+            issues.setdefault(f"status {st}", []).append(u)
             continue
         r = analyse_html(body.decode("utf-8", errors="replace"), final, tuple(args.ignore_prefix or ()))
         titles.setdefault(r["title"], []).append(u)
@@ -428,7 +428,7 @@ def cmd_crawl(args):
 def cmd_doctor(_):
     ok = sys.version_info >= (3, 8)
     st, _, _, _ = fetch("https://example.com/")
-    return (0 if ok else 1), {"python": sys.version.split()[0], "python_ok": ok, "network": st == 200, "dependencies": "aucune (stdlib)"}
+    return (0 if ok else 1), {"python": sys.version.split()[0], "python_ok": ok, "network": st == 200, "dependencies": "none (stdlib)"}
 
 
 def main(argv=None) -> int:
@@ -439,9 +439,9 @@ def main(argv=None) -> int:
         p = sub.add_parser(name)
         p.add_argument("url")
         if name in ("page", "crawl"):
-            p.add_argument("--ignore-prefix", action="append", help="préfixe de chemin à ignorer pour le contrôle du slash final (ex. /app/ : routes d'une application)")
+            p.add_argument("--ignore-prefix", action="append", help="path prefix to ignore for the trailing-slash check (e.g. /app/: application routes)")
         if name == "robots":
-            p.add_argument("--path", action="append", help="chemin à tester pour chaque robot (répétable)")
+            p.add_argument("--path", action="append", help="path to test for each bot (repeatable)")
         if name == "crawl":
             p.add_argument("--max", type=int, default=40)
     try:

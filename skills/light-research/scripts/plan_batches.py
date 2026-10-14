@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Découpe un dossier en lots de fichiers pour une recherche légère par sous-agents Haiku.
+"""Split a folder into batches of files for a light research by Haiku subagents.
 
-Déterministe, sans dépendance : le script ne consomme aucun token de modèle.
-Sortie : JSON sur stdout. Codes de sortie : 0 succès, 2 dossier invalide.
+Deterministic, dependency-free: the script consumes no model tokens.
+Output: JSON on stdout. Exit codes: 0 success, 2 invalid folder.
 
-Estimation des tokens : taille en octets / 4 (ordre de grandeur pour du code et du texte).
-Un fichier plus grand que le budget forme son propre lot, marqué « oversize ».
+Token estimate: size in bytes / 4 (order of magnitude for code and text).
+A file larger than the budget forms its own batch, marked "oversize".
 """
 import argparse
 import json
@@ -25,7 +25,7 @@ def estimate_tokens(size_bytes):
 
 
 def collect(root):
-    """Retourne (fichiers : [(chemin relatif, tokens)], nombre de fichiers ignorés)."""
+    """Return (files: [(relative path, tokens)], number of skipped files)."""
     files, skipped = [], 0
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = sorted(d for d in dirnames if d not in EXCLUDED_DIRS)
@@ -46,7 +46,7 @@ def collect(root):
 
 
 def pack(files, budget):
-    """Regroupe les fichiers en lots dont le total reste sous le budget (sauf fichier isolé trop grand)."""
+    """Group files into batches whose total stays under the budget (except a single oversized file)."""
     batches, current, current_tokens = [], [], 0
     for path, tokens in files:
         if tokens > budget:
@@ -81,16 +81,16 @@ def plan(root, budget):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("root", help="dossier à découper")
+    parser.add_argument("root", help="folder to split")
     parser.add_argument("--budget", type=int, default=25000,
-                        help="tokens estimés maximum par lot (défaut 25000 ; recommandé 15000 à 30000)")
+                        help="maximum estimated tokens per batch (default 25000; recommended 15000 to 30000)")
     args = parser.parse_args(argv)
     root = os.path.abspath(os.path.expanduser(args.root))
     if not os.path.isdir(root):
-        print(json.dumps({"error": "dossier introuvable : %s" % root}), file=sys.stderr)
+        print(json.dumps({"error": "folder not found: %s" % root}), file=sys.stderr)
         return 2
     if args.budget < 1000:
-        print(json.dumps({"error": "budget trop faible (minimum 1000 tokens)"}), file=sys.stderr)
+        print(json.dumps({"error": "budget too low (minimum 1000 tokens)"}), file=sys.stderr)
         return 2
     print(json.dumps(plan(root, args.budget), ensure_ascii=False, indent=2))
     return 0

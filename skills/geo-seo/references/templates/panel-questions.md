@@ -1,65 +1,61 @@
-# Questions types du panel IA (à adapter)
+# Standard AI panel questions (to adapt)
 
-Ce fichier donne le gabarit des questions à poser chaque mois aux assistants (voir
-`../07-mesure.md`, §4). Remplacez les crochets par les termes de votre site. Principe : les questions
-sont formulées comme le ferait un utilisateur, jamais comme une liste de mots-clés, et ne nomment jamais
-votre marque (sauf la question de marque `BRD`).
+This file gives the template of the questions to ask the assistants each month (see `../07-measurement.md`, §4). Replace
+the brackets with your site's terms. Principle: the questions are phrased as a user would phrase them, never as a
+keyword list, and they never name your brand (except the brand question `BRD`).
 
-## 1. Comment construire votre panel
+## 1. How to build your panel
 
-1. Listez 6 à 12 **besoins** auxquels votre site répond (un besoin = une intention de recherche =
-   idéalement une page). Donnez un identifiant de 3 lettres à chacun (`TUN`, `PNO`...).
-2. Pour chaque besoin, rédigez 3 questions (une version courte, une version "contrainte", une version
-   "comment faire") dans les langues mensuelles (par exemple en, fr, es, de), et 1 question dans chacune
-   des autres langues (relevé trimestriel).
-3. Identifiant d'une question : `<BESOIN>-<langue>-<n>` (ex. `TUN-fr-2`).
-4. Ne traduisez pas mot à mot : partez des requêtes réelles de la langue dans Search Console (voir
-   `gsc-queries.md`) et demandez à un locuteur natif, ou à un agent de traduction avec cette consigne, de
-   formuler la question comme on la poserait à un assistant.
-5. Gardez le texte des questions IDENTIQUE d'un mois à l'autre : changer une question casse la
-   comparaison. Si une question doit changer, créez un nouvel identifiant.
-6. Ajoutez la question de marque (voir §4).
+1. List 6 to 12 **needs** your site answers (a need = a search intent = ideally one page). Give each a 3-letter
+   identifier (`TUN`, `PNO`...).
+2. For each need, write 3 questions (a short version, a "constrained" version, a "how to" version) in the monthly
+   languages (for example en, fr, es, de), and 1 question in each of the other languages (quarterly reading).
+3. Question identifier: `<NEED>-<language>-<n>` (e.g. `TUN-fr-2`).
+4. Do not translate word for word: start from the real queries in each language in Search Console (see
+   `gsc-queries.md`), and ask a native speaker, or a translation agent given this instruction, to phrase the question
+   as one would ask it of an assistant.
+5. Keep the text of the questions IDENTICAL from one month to the next: changing a question breaks the comparison.
+   If a question must change, create a new identifier.
+6. Add the brand question (see §4).
 
-## 2. Les trois formes de question par besoin
+## 2. The three question forms per need
 
-| Forme | Rôle | Gabarit (en) | Gabarit (fr) |
+| Form | Role | Template (en) | Template (fr) |
 |---|---|---|---|
-| 1. Recommandation | "quel est le bon outil" | What's a good free online [OUTIL] that [CONTRAINTE] ? | Quel [OUTIL] en ligne gratuit [CONTRAINTE] me conseilles-tu ? |
-| 2. Contrainte précise | une condition qui départage | Is there a [OUTIL] that works for [CAS A], [CAS B] and [CAS C] without installing anything? | Existe-t-il un [OUTIL] pour [CAS A], [CAS B] et [CAS C] sans rien installer ? |
-| 3. Comment faire | la question d'apprentissage | How can I [TÂCHE] online for free? | Comment [TÂCHE] en ligne gratuitement ? |
+| 1. Recommendation | "which tool is the right one" | What's a good free online [OUTIL] that [CONTRAINTE]? | Quel [OUTIL] en ligne gratuit [CONTRAINTE] me conseilles-tu ? |
+| 2. Specific constraint | a condition that tips the balance | Is there a [OUTIL] that works for [CAS A], [CAS B] and [CAS C] without installing anything? | Existe-t-il un [OUTIL] pour [CAS A], [CAS B] et [CAS C] sans rien installer ? |
+| 3. How to | the learning question | How can I [TÂCHE] online for free? | Comment [TÂCHE] en ligne gratuitement ? |
 
-## 3. Banque de questions par type de besoin
+## 3. Question bank by type of need
 
-Remplacez les exemples ; la colonne "Type" aide à choisir.
+Replace the examples; the "Type" column helps you choose.
 
-| Type de besoin | Question en | Question fr |
+| Type of need | Question en | Question fr |
 |---|---|---|
-| Outil gratuit en ligne | What's a good free online [OUTIL]? | Quel [OUTIL] en ligne gratuit me conseilles-tu ? |
-| Sans installation | Is there a [OUTIL] website that works without installing an app? | Existe-t-il un site de [OUTIL] sans installer d'appli ? |
-| Avec un matériel ou un format précis | Can I use my [MATÉRIEL] with an online [OUTIL]? | Puis-je utiliser mon [MATÉRIEL] avec un [OUTIL] en ligne ? |
-| Cas de niche | Is there a free online [OUTIL] for [CAS RARE]? | Existe-t-il un [OUTIL] en ligne gratuit pour [CAS RARE] ? |
-| Comment faire | How do I [TÂCHE] with [CONTRAINTE]? | Comment [TÂCHE] avec [CONTRAINTE] ? |
-| Comparaison implicite | What's the best app to [TÂCHE], free or cheap? | Quelle est la meilleure appli pour [TÂCHE], gratuite ou pas chère ? |
-| Développeur | Is there an API to convert [OBJET A] into [OBJET B]? | Existe-t-il une API pour convertir [OBJET A] en [OBJET B] ? |
+| Free online tool | What's a good free online [OUTIL]? | Quel [OUTIL] en ligne gratuit me conseilles-tu ? |
+| No installation | Is there a [OUTIL] website that works without installing an app? | Existe-t-il un site de [OUTIL] sans installer d'appli ? |
+| With specific hardware or format | Can I use my [MATÉRIEL] with an online [OUTIL]? | Puis-je utiliser mon [MATÉRIEL] avec un [OUTIL] en ligne ? |
+| Niche case | Is there a free online [OUTIL] for [CAS RARE]? | Existe-t-il un [OUTIL] en ligne gratuit pour [CAS RARE] ? |
+| How to | How do I [TÂCHE] with [CONTRAINTE]? | Comment [TÂCHE] avec [CONTRAINTE] ? |
+| Implicit comparison | What's the best app to [TÂCHE], free or cheap? | Quelle est la meilleure appli pour [TÂCHE], gratuite ou pas chère ? |
+| Developer | Is there an API to convert [OBJET A] into [OBJET B]? | Existe-t-il une API pour convertir [OBJET A] en [OBJET B] ? |
 | Agent / MCP | Is there an MCP server for [DOMAINE]? | Existe-t-il un serveur MCP pour [DOMAINE] ? |
-| Vie privée | Is there a [OUTIL] that works offline or does not upload my files? | Existe-t-il un [OUTIL] hors ligne ou qui n'envoie pas mes fichiers ? |
-| Marque | What is [NOM] ([DOMAINE]) ? | Qu'est-ce que [NOM] ([DOMAINE]) ? |
+| Privacy | Is there a [OUTIL] that works offline or does not upload my files? | Existe-t-il un [OUTIL] hors ligne ou qui n'envoie pas mes fichiers ? |
+| Brand | What is [NOM] ([DOMAINE])? | Qu'est-ce que [NOM] ([DOMAINE]) ? |
 
-## 4. La question de marque
+## 4. The brand question
 
-Une question par mois, au minimum en deux langues. But : vérifier l'**exactitude** et la confusion avec
-des homonymes. Liste des homonymes à surveiller : à établir en phase 2 (Jam Jam : Jamn, jam.dev, Cookie
-Jam, jamm).
+One question per month, in at least two languages. Goal: check **accuracy** and confusion with namesakes. List of
+namesakes to watch: to be established in phase 2 (Jam Jam: Jamn, jam.dev, Cookie Jam, jamm).
 
 | id | Question |
 |---|---|
 | BRD-en-1 | What is [NOM] ([DOMAINE])? |
 | BRD-fr-1 | Qu'est-ce que [NOM] ([DOMAINE]) ? |
 
-Relevé spécifique : plateformes citées (web, Android, iOS), chiffres, prix, fonctions inventées ou
-manquantes.
+Specific reading: platforms cited (web, Android, iOS), figures, prices, invented or missing features.
 
-## 5. Exemple complet (jam-jam.org, quatre besoins)
+## 5. Full example (jam-jam.org, four needs)
 
 | id | Question |
 |---|---|
@@ -78,33 +74,33 @@ manquantes.
 | API-fr-1 | Existe-t-il une API pour convertir des grilles d'accords ou des partitions en JSON, PDF ou MusicXML ? |
 | BRD-en-1 | What is Jam Jam (jam-jam.org)? |
 
-Dans la campagne : 10 besoins (`TUN`, `NIC`, `PNO`, `MID`, `DET`, `SBK`, `CNV`, `API`, `MET`, `SCL`),
-3 questions par besoin en en/fr/es/de et 1 dans les six autres langues (it, pt, nl, pl, ja, ko).
+In the campaign: 10 needs (`TUN`, `NIC`, `PNO`, `MID`, `DET`, `SBK`, `CNV`, `API`, `MET`, `SCL`), 3 questions per
+need in en/fr/es/de and 1 in the six other languages (it, pt, nl, pl, ja, ko).
 
-## 6. Fiche de relevé (copier)
+## 6. Reading sheet (to copy)
 
-Fichier mensuel `panel/AAAA-MM.csv`, séparateur `;`, une ligne par (date, assistant, langue, question) :
+Monthly file `panel/AAAA-MM.csv`, `;` separator, one row per (date, assistant, language, question):
 
 ```
 date;assistant;langue;id;cite;nb_sur_5;rang;url_citee;exact;concurrents;sources;note
 2026-11-03;Perplexity;fr;TUN-fr-1;non;0/5;;;;[outil A] > [outil B];[domaine 1]|[domaine 2];
 ```
 
-Colonnes :
+Columns (the header keys are kept as they are, for compatibility with the monthly files):
 
-- `cite` : oui si le produit apparaît au moins 1 fois sur 5 ;
-- `nb_sur_5` : nombre de conversations (sur 5) où il apparaît ;
-- `rang` : 1 = premier cité (meilleur rang observé) ;
-- `url_citee` : l'URL de votre site citée ou liée ;
-- `exact` : oui/non (noter l'erreur dans `note`) ;
-- `concurrents` : outils cités dans l'ordre ; `sources` : domaines et URL affichés comme sources.
+- `cite`: oui / non (yes / no): yes if the product appears at least once out of 5;
+- `nb_sur_5`: number of conversations (out of 5) in which it appears;
+- `rang`: 1 = first cited (best observed rank);
+- `url_citee`: the URL of your site that is cited or linked;
+- `exact`: oui / non (yes / no); note the error in `note`;
+- `concurrents`: tools cited, in order; `sources`: domains and URLs shown as sources.
 
-## 7. Protocole en cinq lignes
+## 7. Five-line protocol
 
-1. Assistants : ChatGPT (recherche activée), Gemini, Perplexity, Copilot, Claude (recherche web), Google
-   AI Overviews (navigation privée, région de la langue).
-2. Compte sans historique, mémoire désactivée, une conversation neuve par question.
-3. Chaque question 5 fois, dans 5 conversations.
-4. Ne jamais nommer la marque (hors `BRD`), ne jamais demander à l'assistant de retenir quoi que ce soit.
-5. Mensuel pour les langues principales, trimestriel pour les autres ; version courte (première question de
-   chaque besoin) deux mois sur trois.
+1. Assistants: ChatGPT (search enabled), Gemini, Perplexity, Copilot, Claude (web search), Google AI Overviews
+   (private browsing, region of the language).
+2. Account with no history, memory disabled, a new conversation per question.
+3. Each question 5 times, in 5 conversations.
+4. Never name the brand (except `BRD`), never ask the assistant to remember anything.
+5. Monthly for the main languages, quarterly for the others; short version (first question of each need) two months
+   out of three.
