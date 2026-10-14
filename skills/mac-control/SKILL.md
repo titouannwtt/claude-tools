@@ -1,6 +1,6 @@
 ---
 name: mac-control
-description: Piloter le Mac de l'utilisateur (applications, navigateur, formulaires, menus) via cua-driver pour faire une démarche à sa place : remplir un formulaire, naviguer sur un site, utiliser une application sans API. Utiliser quand l'utilisateur demande de prendre le contrôle de l'ordinateur ou d'effectuer une action dans une interface graphique.
+description: (Mac uniquement) Piloter le Mac de l'utilisateur (applications, navigateur, formulaires, menus) via cua-driver pour faire une démarche à sa place : remplir un formulaire, naviguer sur un site, utiliser une application sans API. Utiliser quand l'utilisateur demande de prendre le contrôle de l'ordinateur ou d'effectuer une action dans une interface graphique.
 ---
 
 # mac-control

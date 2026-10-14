@@ -1,12 +1,28 @@
 # claude-tools
 
 Configuration partagée de Claude Code : CLAUDE.md global, agents, hooks, skills.
-Dépôt privé. Installation sur Mac et VPS via `install.sh` (à venir).
+Dépôt privé. Installation sur Mac et VPS via `install.sh`.
 
 Règles :
 - aucun nom, pseudo ou chemin personnel en dur ; la configuration locale vit dans `local.env` (ignoré par git) ;
 - aucun secret commité ;
 - Python par défaut pour les outils ; Rust seulement si le gain de performance est mesuré.
+
+## Skills
+
+| Skill | Rôle | Dépendances |
+|---|---|---|
+| `light-research` | découpage d'un grand périmètre en lots pour sous-agents Haiku | aucune |
+| `skill-forge` | création et publication d'un nouveau skill | aucune |
+| `video-transcript` | transcription d'une vidéo YouTube (sous-titres, sinon audio + Whisper local) | yt-dlp, ffmpeg, faster-whisper |
+| `youtube-download` | vidéo, audio, miniature et métadonnées YouTube | yt-dlp, ffmpeg |
+| `web-fetch` | page web avec repli sur proxy résidentiel si l'accès est bloqué | aucune |
+| `site-design` | palette, typographie, espacements et captures responsives d'un site | playwright, Chromium |
+| `mac-control` | pilotage du Mac via cua-driver, avec garde-fous pour les démarches | cua-driver (Mac) |
+| `geo-seo` | référencement d'un site pour Google et les assistants IA | voir le skill |
+
+Chaque skill appelle un script testé (`python3 -m unittest discover -s tests` dans son dossier) ; `lib/` contient les
+fonctions communes (lecture de `local.env`, proxy).
 
 ## Installation
 
