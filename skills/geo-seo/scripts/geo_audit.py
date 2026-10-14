@@ -34,7 +34,7 @@ AI_BOTS = {
     "GPTBot": ("Mozilla/5.0 (compatible; GPTBot/1.1; +https://openai.com/gptbot)", "entraînement OpenAI"),
     "OAI-SearchBot": ("Mozilla/5.0 (compatible; OAI-SearchBot/1.0; +https://openai.com/searchbot)", "recherche ChatGPT"),
     "ChatGPT-User": ("Mozilla/5.0 (compatible; ChatGPT-User/1.0; +https://openai.com/bot)", "navigation à la demande ChatGPT"),
-    "ClaudeBot": ("Mozilla/5.0 (compatible; ClaudeBot/1.0; +claudebot@anthropic.com)", "entraînement Anthropic"),
+    "ClaudeBot": ("Mozilla/5.0 (compatible; ClaudeBot/1.0; +claudebot@anthropic.com)", "entraînement Anthropic"),  # check-repo: ignore (adresse publique du robot)
     "Claude-SearchBot": ("Mozilla/5.0 (compatible; Claude-SearchBot/1.0)", "recherche Claude"),
     "Claude-User": ("Mozilla/5.0 (compatible; Claude-User/1.0)", "navigation à la demande Claude"),
     "PerplexityBot": ("Mozilla/5.0 (compatible; PerplexityBot/1.0; +https://perplexity.ai/perplexitybot)", "index Perplexity"),
@@ -48,7 +48,7 @@ AI_BOTS = {
     "MistralAI-User": ("Mozilla/5.0 (compatible; MistralAI-User/1.0)", "Le Chat Mistral"),
     "DuckAssistBot": ("Mozilla/5.0 (compatible; DuckAssistBot/1.0)", "DuckDuckGo AI"),
     "CCBot": ("CCBot/2.0 (https://commoncrawl.org/faq/)", "Common Crawl (corpus d'entraînement)"),
-    "Bytespider": ("Mozilla/5.0 (compatible; Bytespider; spider-feedback@bytedance.com)", "ByteDance"),
+    "Bytespider": ("Mozilla/5.0 (compatible; Bytespider; spider-feedback@bytedance.com)", "ByteDance"),  # check-repo: ignore (adresse publique du robot)
 }
 
 

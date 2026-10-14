@@ -111,12 +111,12 @@ class SoumissionTests(unittest.TestCase):
         import base64
         import json as j
         import gsc_submit as s
-        a = s.build_assertion({"client_email": "sa@x.iam", "token_uri": "https://t"}, 1000, lambda d: b"SIG")
+        a = s.build_assertion({"client_email": "sa@x.iam", "token_uri": "https://t"}, 1000, lambda d: b"SIG")  # check-repo: ignore (fausse adresse de test)
         h, c, sig = a.split(".")
         pad = lambda x: x + "=" * (-len(x) % 4)
         self.assertEqual(j.loads(base64.urlsafe_b64decode(pad(h)))["alg"], "RS256")
         cl = j.loads(base64.urlsafe_b64decode(pad(c)))
-        self.assertEqual((cl["iss"], cl["iat"], cl["exp"]), ("sa@x.iam", 1000, 4600))
+        self.assertEqual((cl["iss"], cl["iat"], cl["exp"]), ("sa@x.iam", 1000, 4600))  # check-repo: ignore (fausse adresse de test)
         self.assertEqual(base64.urlsafe_b64decode(pad(sig)), b"SIG")
 
     def test_indexnow_sitemap(self):
