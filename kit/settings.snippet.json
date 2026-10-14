@@ -13,9 +13,18 @@
       {
         "matcher": "Agent|Workflow",
         "hooks": [
-          { "type": "command", "command": "python3 -I ~/.claude/hooks/subagent-gate.py", "timeout": 10 }
+          {
+            "type": "command",
+            "command": "python3 -I ~/.claude/hooks/subagent-gate.py",
+            "timeout": 10
+          }
         ]
       }
     ]
-  }
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "includeCoAuthoredBy": false
 }

@@ -56,7 +56,7 @@ Ne rien recommander sans ce tableau.
 
 ## 7. Publier
 
-Le skill est créé dans `skills/<nom>/` du dépôt `claude-tools` (Mac : `~/dev/claude-tools`, VPS : `~/claude-tools`).
+Le skill est créé dans `skills/<nom>/` du dépôt `claude-tools` (son clone local ; `readlink ~/.claude/skills/skill-forge` donne l'emplacement).
 Une fois les tests verts, lancer depuis la racine du dépôt :
 
 `tools/publish_skill.sh <nom> ["message de commit"]`

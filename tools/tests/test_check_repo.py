@@ -44,12 +44,39 @@ class ScanTextTest(unittest.TestCase):
         for _, number in cr.scan_text(FAKE_KEY, []):
             self.assertIsInstance(number, int)
 
+    def test_terme_autorise_ne_masque_que_sa_chaine(self):
+        self.assertEqual(cr.scan_text("github.com/zorglubdev/x", ["zorglub"], ["zorglubdev"]), [])
+        self.assertNotEqual(cr.scan_text("zorglubdev et Zorglub Dupont", ["zorglub"], ["zorglubdev"]), [])
+
     def test_termes_depuis_local_env(self):
         with tempfile.TemporaryDirectory() as tmp:
             env = Path(tmp) / "local.env"
             env.write_text("AUTRE=1\nFORBIDDEN_TERMS=Alpha, beta\n", encoding="utf-8")
             self.assertEqual(cr.load_terms(str(env)), ["alpha", "beta"])
             self.assertEqual(cr.load_terms(str(Path(tmp) / "absent.env")), [])
+
+
+class CommitMessageTest(unittest.TestCase):
+    def test_mention_ia_refusee(self):
+        trailers = ["Co-Authored-By: Claude Opus 5.5 <noreply" + "@anthropic.com>",
+                    "co-authored-by: claude", "\U0001f916 Generated with [Claude Code](https://claude.com/claude-code)"]
+        for trailer in trailers:
+            with self.subTest(trailer=trailer):
+                self.assertEqual(cr.scan_commit_message("feat: x\n\n" + trailer + "\n"), [3])
+
+    def test_message_normal_et_commentaires_acceptes(self):
+        text = "feat(skill): claude-tools prend en charge Claude Code\n\nCo-Authored-By: Alice <alice@example.com>\n# Generated with Claude\n"
+        self.assertEqual(cr.scan_commit_message(text), [])
+
+    def test_cli_code_de_sortie(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            msg = Path(tmp) / "MSG"
+            msg.write_text("fix: y\n\nCo-Authored-By: Claude <x>\n", encoding="utf-8")
+            result = subprocess.run([sys.executable, str(SCRIPT), "--commit-msg", str(msg)], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 1)
+            msg.write_text("fix: y\n", encoding="utf-8")
+            result = subprocess.run([sys.executable, str(SCRIPT), "--commit-msg", str(msg)], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0)
 
 
 class CliTest(unittest.TestCase):
@@ -106,6 +133,14 @@ class CliTest(unittest.TestCase):
         code, out, _ = self.run_check("--identity")
         self.assertEqual(code, 1)
         self.assertIn("identité git (user.name)", out)
+
+    def test_email_git_reel_bloque_le_commit(self):
+        self.git("config", "user.email", "dev" + "@" + "corp.io")
+        self.stage("a.md", "propre\n")
+        code, out, _ = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertIn("e-mail git réel", out)
+        self.assertNotIn("corp.io", out)
 
     def test_depot_inexistant_renvoie_code_2(self):
         result = subprocess.run([sys.executable, str(SCRIPT), "--root", str(self.root / "absent")],

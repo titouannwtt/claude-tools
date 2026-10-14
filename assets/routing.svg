@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 620" width="1280" height="620" role="img" aria-labelledby="t d">
+  <title id="t">How a task gets routed</title>
+  <desc id="d">A request goes through the subagent-gate hook, which checks model, effort and brief, then sends the work to Haiku, Sonnet or Opus agents.</desc>
+  <defs>
+    <style>
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+      .sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+      .flow { stroke-dasharray: 2 10; stroke-linecap: round; animation: dash 1.4s linear infinite; }
+      .eye { animation: blink 4s infinite; transform-box: fill-box; transform-origin: center; }
+      .bob { animation: bob 3s ease-in-out infinite; }
+      @keyframes dash { to { stroke-dashoffset: -24; } }
+      @keyframes blink { 0%, 90%, 100% { transform: scaleY(1); } 94% { transform: scaleY(0.1); } }
+      @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+      @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+    </style>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1F1E1C"/>
+      <stop offset="1" stop-color="#121211"/>
+    </linearGradient>
+    <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <rect x="11" y="11" width="2" height="2" fill="#F0EEE6" opacity="0.06"/>
+    </pattern>
+    <g id="clawd" shape-rendering="crispEdges">
+      <rect x="2" y="0" width="7" height="4" fill="#D97757"/>
+      <rect x="0" y="2" width="2" height="1" fill="#D97757"/>
+      <rect x="9" y="2" width="2" height="1" fill="#D97757"/>
+      <rect x="2" y="4" width="1" height="2" fill="#D97757"/>
+      <rect x="4" y="4" width="1" height="2" fill="#D97757"/>
+      <rect x="6" y="4" width="1" height="2" fill="#D97757"/>
+      <rect x="8" y="4" width="1" height="2" fill="#D97757"/>
+      <rect class="eye" x="3" y="1" width="1" height="1" fill="#141413"/>
+      <rect class="eye" x="7" y="1" width="1" height="1" fill="#141413"/>
+    </g>
+    <g id="ok">
+      <circle r="10" fill="#D97757" opacity="0.18"/>
+      <path d="M-4.5 0.5l3 3 6-6.5" fill="none" stroke="#D97757" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0L10 5L0 10z" fill="#D97757"/>
+    </marker>
+  </defs>
+
+  <rect width="1280" height="620" rx="28" fill="url(#bg)"/>
+  <rect width="1280" height="620" rx="28" fill="url(#dots)"/>
+
+  <g class="sans">
+    <text x="60" y="78" font-size="34" font-weight="700" fill="#F0EEE6">How a task gets routed</text>
+    <text x="60" y="114" font-size="20" fill="#A8A69E">A hook checks every subagent launch: the cheapest model that can do the job, at the right effort.</text>
+  </g>
+
+  <!-- Request -->
+  <g transform="translate(60 262)">
+    <rect width="230" height="132" rx="16" fill="#2A2926" stroke="#3D3B37"/>
+    <text x="22" y="36" class="mono" font-size="14" letter-spacing="2" fill="#D97757">YOUR REQUEST</text>
+    <text x="22" y="70" class="sans" font-size="19" fill="#F0EEE6">“Fix the login bug,</text>
+    <text x="22" y="96" class="sans" font-size="19" fill="#F0EEE6">then add tests”</text>
+  </g>
+  <path class="flow" d="M298 328 L 352 328" stroke="#D97757" stroke-width="3" fill="none"/>
+  <path d="M340 328 L 354 328" stroke="#D97757" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- Gate -->
+  <g transform="translate(366 196)">
+    <rect width="292" height="268" rx="18" fill="#2A2926" stroke="#D97757" stroke-width="1.5"/>
+    <text x="24" y="44" class="mono" font-size="19" font-weight="700" fill="#F0EEE6">subagent-gate.py</text>
+    <text x="24" y="70" class="sans" font-size="15" fill="#A8A69E">PreToolUse hook on Agent · Workflow</text>
+    <g class="sans" font-size="16" fill="#F0EEE6">
+      <use href="#ok" x="34" y="108"/><text x="56" y="113">Haiku, Sonnet or Opus 5.5 only</text>
+      <use href="#ok" x="34" y="146"/><text x="56" y="151">effort allowed for that model</text>
+      <use href="#ok" x="34" y="184"/><text x="56" y="189">self-contained brief (400+)</text>
+      <use href="#ok" x="34" y="222"/><text x="56" y="227">multi-agent Workflow: asks you</text>
+    </g>
+  </g>
+  <!-- Mascot sitting on the gate -->
+  <g transform="translate(466 138)">
+    <g class="bob"><g transform="scale(8.5)"><use href="#clawd"/></g></g>
+  </g>
+
+  <!-- Lanes -->
+  <g fill="none" stroke="#D97757" stroke-width="3">
+    <path class="flow" d="M666 300 C 700 300, 700 196, 736 196"/>
+    <path class="flow" d="M666 330 L 736 330"/>
+    <path class="flow" d="M666 360 C 700 360, 700 464, 736 464"/>
+  </g>
+
+  <g class="sans">
+    <g transform="translate(744 140)">
+      <rect width="476" height="112" rx="16" fill="#2A2926" stroke="#3D3B37"/>
+      <text x="24" y="40" class="mono" font-size="20" font-weight="700" fill="#F0EEE6">Haiku</text>
+      <text x="104" y="40" class="mono" font-size="15" fill="#A8A69E">low → max</text>
+      <g fill="#D97757"><circle cx="420" cy="34" r="6"/><circle cx="438" cy="34" r="6" opacity="0.2"/><circle cx="456" cy="34" r="6" opacity="0.2"/></g>
+      <text x="24" y="72" class="mono" font-size="16" fill="#D97757">scout · researcher · worker</text>
+      <text x="24" y="96" font-size="16" fill="#A8A69E">inventory, search, sourced research, mechanical edits</text>
+    </g>
+    <g transform="translate(744 274)">
+      <rect width="476" height="112" rx="16" fill="#2A2926" stroke="#3D3B37"/>
+      <text x="24" y="40" class="mono" font-size="20" font-weight="700" fill="#F0EEE6">Sonnet</text>
+      <text x="114" y="40" class="mono" font-size="15" fill="#A8A69E">medium · high</text>
+      <g fill="#D97757"><circle cx="420" cy="34" r="6"/><circle cx="438" cy="34" r="6"/><circle cx="456" cy="34" r="6" opacity="0.2"/></g>
+      <text x="24" y="72" class="mono" font-size="16" fill="#D97757">implementer</text>
+      <text x="24" y="96" font-size="16" fill="#A8A69E">features, multi-file refactors, tests</text>
+    </g>
+    <g transform="translate(744 408)">
+      <rect width="476" height="112" rx="16" fill="#2A2926" stroke="#3D3B37"/>
+      <text x="24" y="40" class="mono" font-size="20" font-weight="700" fill="#F0EEE6">Opus</text>
+      <text x="92" y="40" class="mono" font-size="15" fill="#A8A69E">low → high</text>
+      <g fill="#D97757"><circle cx="420" cy="34" r="6"/><circle cx="438" cy="34" r="6"/><circle cx="456" cy="34" r="6"/></g>
+      <text x="24" y="72" class="mono" font-size="16" fill="#D97757">analyst · reviewer · architect · designer</text>
+      <text x="24" y="96" font-size="16" fill="#A8A69E">debugging, review, architecture, design</text>
+    </g>
+  </g>
+
+  <!-- Footer rule -->
+  <g class="sans" font-size="16">
+    <rect x="60" y="548" width="1160" height="1" fill="#3D3B37"/>
+    <text x="60" y="584" fill="#A8A69E">Blocked by design: <tspan class="mono" fill="#F0EEE6">sonnet/low</tspan> (costs more than Haiku max) and <tspan class="mono" fill="#F0EEE6">opus/max</tspan> (costs more than xhigh, no better).</text>
+    <g fill="#D97757" transform="translate(1100 578)"><circle cx="0" cy="0" r="5"/><text x="12" y="5" fill="#A8A69E" font-size="14">= relative cost</text></g>
+  </g>
+</svg>

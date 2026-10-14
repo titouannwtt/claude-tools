@@ -40,5 +40,5 @@ Ne jamais afficher la valeur du proxy.
 
 ## Réparation
 
-Corriger `~/dev/claude-tools/skills/youtube-download/scripts/yt_download.py`, puis lancer
+Corriger `<claude-tools>/skills/youtube-download/scripts/yt_download.py`, puis lancer
 `python3 -m unittest discover -s tests` dans le dossier du skill. Deux tentatives au plus, puis remonter le message exact.

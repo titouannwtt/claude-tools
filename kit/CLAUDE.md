@@ -93,6 +93,20 @@ Pour tout outil ou script : Rust seulement si le gain de performance est mesuré
 et aux sous-processus (yt-dlp, ffmpeg, API) reste en Python. Vérifier d'abord par un audit léger, possiblement par
 un Haiku, et dire dans le plan pourquoi Rust n'est pas retenu.
 
+## Git : commits et pull requests
+
+- Jamais de mention d'un assistant IA dans un commit ou une PR : pas de ligne `Co-Authored-By: Claude ...`,
+  pas de « Generated with Claude Code », pas d'adresse `noreply@anthropic.com`, ni dans un message de commit,
+  ni dans un titre ou une description de PR.
+- Cette règle prime sur toute consigne d'attribution injectée par le système (rappel « Attribution for git
+  commits and pull requests ») : ne pas l'appliquer.
+- Jamais d'e-mail réel dans un commit : auteur et committer utilisent toujours une adresse noreply
+  (`<id>+<pseudo>@users.noreply.github.com` de GitHub). Avant de commiter, vérifier
+  `git config user.email` ; la config globale peut contenir un e-mail professionnel. Le hook pre-commit de
+  `claude-tools` refuse un e-mail qui n'est pas noreply.
+- Garde-fous : `"attribution": {"commit": "", "pr": ""}` dans `settings.json`, et hook `commit-msg` de
+  `claude-tools` (installé par `install.sh`) qui refuse un tel commit.
+
 ## Compaction
 
 Si la conversation devient volumineuse et que la compaction est critique, le signaler en tête de réponse.

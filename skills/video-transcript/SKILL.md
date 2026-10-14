@@ -34,7 +34,7 @@ Script : `~/.claude/skills/video-transcript/scripts/transcript.py`. Il écrit to
 
 Si le script échoue sans code attendu (1), ou si une sortie est incohérente :
 1. Lire le message d'erreur complet.
-2. Corriger le script dans `~/dev/claude-tools/skills/video-transcript/scripts/transcript.py` (le lien symbolique pointe dessus), et lancer `python3 -m unittest discover -s tests` dans le dossier du skill.
+2. Corriger le script dans `<claude-tools>/skills/video-transcript/scripts/transcript.py` (le lien symbolique pointe dessus), et lancer `python3 -m unittest discover -s tests` dans le dossier du skill.
 3. Relancer la commande. Deux tentatives au plus, puis remonter le problème à l'utilisateur avec le message exact.
 
 ## Installation des dépendances

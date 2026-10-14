@@ -35,5 +35,5 @@ Adresse dans `local.env` à la racine de `claude-tools` (clé `IPROYAL_RESIDENTI
 
 ## Réparation
 
-Corriger `~/dev/claude-tools/skills/web-fetch/scripts/fetch_url.py`, puis lancer `python3 -m unittest discover -s tests`
+Corriger `<claude-tools>/skills/web-fetch/scripts/fetch_url.py`, puis lancer `python3 -m unittest discover -s tests`
 dans le dossier du skill. Deux tentatives au plus, puis remonter le message exact à l'utilisateur.

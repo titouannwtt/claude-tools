@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Installation idempotente : lie chaque skill du dépôt dans ~/.claude/skills et installe le contrôle avant commit.
+# Installation idempotente : lie chaque skill du dépôt dans ~/.claude/skills et installe les contrôles git
+# (pre-commit : secrets et données personnelles ; commit-msg : aucune mention d'assistant IA).
 # Variable optionnelle : CLAUDE_HOME (défaut ~/.claude).
 set -euo pipefail
 
@@ -31,5 +32,14 @@ if [[ -d "$root/.git" ]]; then
     echo "contrôle avant commit installé"
   else
     echo "hook pre-commit existant conservé (non géré par ce dépôt)" >&2
+  fi
+  hook="$root/.git/hooks/commit-msg"
+  if [[ ! -e "$hook" ]] || grep -q "claude-tools check_repo" "$hook"; then
+    printf '%s\n' '#!/bin/sh' '# claude-tools check_repo' \
+      'exec python3 "$(git rev-parse --show-toplevel)/tools/check_repo.py" --commit-msg "$1"' > "$hook"
+    chmod +x "$hook"
+    echo "contrôle du message de commit installé (aucune mention d'assistant IA)"
+  else
+    echo "hook commit-msg existant conservé (non géré par ce dépôt)" >&2
   fi
 fi

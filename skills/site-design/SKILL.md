@@ -53,5 +53,5 @@ limité : une page charge ses images, donc préférer un seul passage. Ne jamais
 
 ## Réparation
 
-Corriger `~/dev/claude-tools/skills/site-design/scripts/site_design.py`, puis `python3 -m unittest discover -s tests`
+Corriger `<claude-tools>/skills/site-design/scripts/site_design.py`, puis `python3 -m unittest discover -s tests`
 dans le dossier du skill. Deux tentatives au plus, puis remonter le message exact à l'utilisateur.

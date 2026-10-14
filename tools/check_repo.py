@@ -3,10 +3,13 @@
 
 Analyse le contenu qui sera réellement commité (index git) ou tout le dépôt suivi.
 Les termes interdits (nom, pseudo, domaine) ne sont jamais écrits dans le dépôt : ils viennent de local.env
-(clé FORBIDDEN_TERMS, séparés par des virgules, insensible à la casse).
+(clé FORBIDDEN_TERMS, séparés par des virgules, insensible à la casse). ALLOWED_TERMS (même format) liste les
+chaînes publiques qui contiennent un terme interdit sans être une fuite (ex. le pseudo GitHub dans une URL).
 
 Usage : check_repo.py [--staged | --all] [--root DIR] [--local-env FICHIER] [--identity]
-L'identité git (auteur des commits) n'est contrôlée que sur demande (--identity) : elle ne bloque pas un commit.
+        check_repo.py --commit-msg FICHIER   (hook commit-msg : refuse toute mention d'un assistant IA)
+L'e-mail git (user.email) doit toujours être une adresse noreply (ex. ID+pseudo@users.noreply.github.com) :
+sinon le commit est refusé. Le nom git n'est contrôlé contre FORBIDDEN_TERMS que sur demande (--identity).
 Faux positif : ajouter le commentaire « check-repo: ignore » sur la ligne concernée.
 Sortie : une ligne par constat (type, fichier:ligne), jamais la valeur trouvée.
 Codes de sortie : 0 rien trouvé ; 1 constats ; 2 erreur d'usage ou dépôt introuvable.
@@ -34,27 +37,33 @@ SECRET_RES = (
     ("clé AWS", re.compile(r"AKIA[0-9A-Z]{16}")),
     ("clé privée", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----")),
 )
+# Aucun commit ne mentionne un assistant IA comme coauteur ou générateur (règle du CLAUDE.md, section Git).
+AI_ATTRIBUTION_RE = re.compile(
+    r"co-authored-by:.*(claude|anthropic)|noreply@anthropic\.com|generated with \[?claude|claude\.com/claude-code",
+    re.IGNORECASE)
 
 
-def load_terms(local_env):
-    """Termes interdits lus dans local.env ; liste vide si le fichier ou la clé est absent."""
+def load_terms(local_env, key="FORBIDDEN_TERMS"):
+    """Termes lus dans local.env (FORBIDDEN_TERMS par défaut) ; liste vide si le fichier ou la clé est absent."""
     if not local_env or not Path(local_env).is_file():
         return []
     for line in Path(local_env).read_text(encoding="utf-8").splitlines():
         line = line.strip()
-        if line.startswith("FORBIDDEN_TERMS="):
+        if line.startswith(key + "="):
             raw = line.split("=", 1)[1].strip().strip("\"'")
             return [term.strip().lower() for term in raw.split(",") if term.strip()]
     return []
 
 
-def scan_text(text, terms):
+def scan_text(text, terms, allowed=()):
     """Retourne [(type, numéro de ligne)] pour un texte. Les valeurs trouvées ne sont jamais renvoyées."""
     findings = []
     for number, line in enumerate(text.splitlines(), 1):
         if IGNORE_MARKER in line:
             continue
         lowered = line.lower()
+        for public in allowed:
+            lowered = lowered.replace(public, " ")
         for term in terms:
             if term in lowered:
                 findings.append(("terme interdit", number))
@@ -77,6 +86,12 @@ def scan_text(text, terms):
             if pattern.search(line):
                 findings.append((label, number))
     return findings
+
+
+def scan_commit_message(text):
+    """Numéros des lignes d'un message de commit qui attribuent le commit à un assistant IA (commentaires exclus)."""
+    return [number for number, line in enumerate(text.splitlines(), 1)
+            if not line.startswith("#") and AI_ATTRIBUTION_RE.search(line)]
 
 
 def git(root, *args):
@@ -114,14 +129,26 @@ def check_identity(root, terms):
     return findings
 
 
+def check_email(root):
+    """Refuse un e-mail git réel : seules les adresses noreply sont acceptées."""
+    try:
+        value = git(root, "config", "user.email").decode("utf-8").strip().lower()
+    except RuntimeError:
+        return ["e-mail git absent (user.email) : configurer une adresse noreply"]
+    if "noreply" not in value.split("@")[-1] and not value.startswith("noreply@"):
+        return ["e-mail git réel (user.email) : utiliser une adresse noreply"]
+    return []
+
+
 def run(root, mode, local_env, identity=False):
     terms = load_terms(local_env)
-    report = []
+    allowed = load_terms(local_env, "ALLOWED_TERMS")
+    report = [] if mode == "all" else check_email(root)
     for name in files_to_scan(root, mode):
         content = read_content(root, name, mode)
         if content is None:
             continue
-        for kind, number in scan_text(content, terms):
+        for kind, number in scan_text(content, terms, allowed):
             report.append("%s : %s:%d" % (kind, name, number))
     if identity:
         report += ["%s" % kind for kind, _ in check_identity(root, terms)]
@@ -133,10 +160,18 @@ def main(argv=None):
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--staged", action="store_true", help="contenu de l'index (défaut)")
     group.add_argument("--all", action="store_true", help="tous les fichiers suivis")
+    group.add_argument("--commit-msg", metavar="FICHIER", help="message de commit à contrôler (hook commit-msg)")
     parser.add_argument("--identity", action="store_true", help="contrôle aussi user.name et user.email")
     parser.add_argument("--root", default=".")
     parser.add_argument("--local-env", default=None, help="défaut : local.env à la racine du dépôt")
     args = parser.parse_args(argv)
+    if args.commit_msg:
+        lines = scan_commit_message(Path(args.commit_msg).read_text(encoding="utf-8", errors="replace"))
+        for number in lines:
+            print("mention d'un assistant IA : message de commit, ligne %d" % number)
+        if lines:
+            print("commit refusé : retirer la ligne (aucun Co-Authored-By ni « Generated with » IA)", file=sys.stderr)
+        return 1 if lines else 0
     root = Path(args.root).resolve()
     local_env = args.local_env or str(root / "local.env")
     try:

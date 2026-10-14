@@ -52,5 +52,5 @@ Le serveur MCP livre déjà son mode d'emploi détaillé (boucle de lecture et d
 
 ## Réparation
 
-Seul le script de diagnostic est du code : `~/dev/claude-tools/skills/mac-control/scripts/cua_doctor.py`, avec ses tests
+Seul le script de diagnostic est du code : `<claude-tools>/skills/mac-control/scripts/cua_doctor.py`, avec ses tests
 (`python3 -m unittest discover -s tests` dans le dossier du skill).
