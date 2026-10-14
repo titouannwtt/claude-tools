@@ -68,7 +68,7 @@ It is built around three goals:
 
 ## Skills
 
-<p align="center"><img src="assets/skills.svg" alt="The skill box: eight skills" width="100%"></p>
+<p align="center"><img src="assets/skills.svg" alt="The skill box" width="100%"></p>
 
 | Skill | What it does | Needs | claude.ai |
 |---|---|---|---|

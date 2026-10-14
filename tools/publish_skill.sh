@@ -20,6 +20,10 @@ if [[ ! -f "skills/$name/SKILL.md" ]]; then
 fi
 
 git add -- "skills/$name"
+if [[ -f tools/sync_counts.py ]]; then  # compteurs du README et de la bannière
+  python3 tools/sync_counts.py
+  git add -- README.md assets/hero.svg 2>/dev/null || true
+fi
 if git diff --cached --quiet; then
   echo "rien de nouveau à commiter pour $name"
 else

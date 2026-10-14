@@ -65,11 +65,11 @@
   <g class="mono" font-size="18">
     <g transform="translate(80 448)">
       <rect width="132" height="44" rx="22" fill="#2A2926" stroke="#3D3B37"/>
-      <text x="66" y="28" text-anchor="middle" fill="#F0EEE6"><tspan fill="#D97757">10</tspan> agents</text>
+      <text x="66" y="28" text-anchor="middle" fill="#F0EEE6"><tspan id="n-agents" fill="#D97757">10</tspan> agents</text>
     </g>
     <g transform="translate(224 448)">
       <rect width="124" height="44" rx="22" fill="#2A2926" stroke="#3D3B37"/>
-      <text x="62" y="28" text-anchor="middle" fill="#F0EEE6"><tspan fill="#D97757">8</tspan> skills</text>
+      <text x="62" y="28" text-anchor="middle" fill="#F0EEE6"><tspan id="n-skills" fill="#D97757">8</tspan> skills</text>
     </g>
     <g transform="translate(360 448)">
       <rect width="176" height="44" rx="22" fill="#2A2926" stroke="#3D3B37"/>

@@ -61,7 +61,13 @@ Une fois les tests verts, lancer depuis la racine du dépôt :
 
 `tools/publish_skill.sh <nom> ["message de commit"]`
 
+Avant de publier, ajouter le skill à la vitrine du dépôt (en anglais) : une ligne dans le tableau « Skills » de
+`README.md` (nom lié à `skills/<nom>`, rôle, dépendances, compatibilité claude.ai) et une carte dans
+`assets/skills.svg` (icône, nom, accroche ; agrandir la grille si elle est pleine). Les compteurs de la bannière et
+du README sont mis à jour par le script (`tools/sync_counts.py`), qui signale aussi un skill absent de la vitrine.
+
 Le script enchaîne, sans autre intervention :
+0. mise à jour des compteurs (`tools/sync_counts.py`) ;
 1. contrôle des secrets, des e-mails, des IP, des chemins personnels et des termes interdits de `local.env`
    (`tools/check_repo.py --staged`) ; en cas de constat, rien n'est commité, corriger puis relancer ;
 2. commit et push sur `main` ;
