@@ -134,6 +134,14 @@ class CliTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("identité git (user.name)", out)
 
+    def test_identite_git_avec_pseudo_public_autorise(self):
+        (self.root / "local.env").write_text("FORBIDDEN_TERMS=zorglub\nALLOWED_TERMS=zorglubx\n", encoding="utf-8")
+        self.git("config", "user.name", "zorglubx")
+        self.git("config", "user.email", "1+zorglubx@users.noreply.github.com")
+        self.stage("a.md", "propre\n")
+        code, _, _ = self.run_check("--identity")
+        self.assertEqual(code, 0)
+
     def test_email_git_reel_bloque_le_commit(self):
         self.git("config", "user.email", "dev" + "@" + "corp.io")
         self.stage("a.md", "propre\n")

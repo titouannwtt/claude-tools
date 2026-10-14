@@ -116,15 +116,18 @@ def read_content(root, name, mode):
     return data.decode("utf-8", "replace")
 
 
-def check_identity(root, terms):
-    """Vérifie l'identité git configurée (nom et e-mail des futurs commits)."""
+def check_identity(root, terms, allowed=()):
+    """Vérifie l'identité git configurée (nom et e-mail des futurs commits), hors termes publics autorisés."""
     findings = []
     for key in ("user.name", "user.email"):
         try:
             value = git(root, "config", key).decode("utf-8").strip()
         except RuntimeError:
             continue
-        if any(term in value.lower() for term in terms):
+        lowered = value.lower()
+        for public in allowed:
+            lowered = lowered.replace(public, " ")
+        if any(term in lowered for term in terms):
             findings.append(("identité git (%s)" % key, 0))
     return findings
 
@@ -151,7 +154,7 @@ def run(root, mode, local_env, identity=False):
         for kind, number in scan_text(content, terms, allowed):
             report.append("%s : %s:%d" % (kind, name, number))
     if identity:
-        report += ["%s" % kind for kind, _ in check_identity(root, terms)]
+        report += ["%s" % kind for kind, _ in check_identity(root, terms, allowed)]
     return report, bool(terms)
 
 

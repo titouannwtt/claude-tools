@@ -146,6 +146,10 @@ Keep the cost-aware habits, the "ask before a large vague task" rule, the reliab
 
 Run all tests: `for d in tools skills/*/; do [ -d "$d/tests" ] && (cd "$d" && python3 -m unittest discover -s tests -q); done`
 
+## License
+
+[MIT](LICENSE): copy, adapt and reuse any part, just keep the copyright notice.
+
 ---
 
 <sub>Not affiliated with Anthropic. Claude and its mascot are Anthropic's; the pixel mascot in these images is a
