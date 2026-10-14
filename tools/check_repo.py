@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Contrôle avant commit : secrets, identité et chemins personnels.
+"""Contrôle avant commit : secrets, noms et chemins personnels dans le contenu.
 
 Analyse le contenu qui sera réellement commité (index git) ou tout le dépôt suivi.
 Les termes interdits (nom, pseudo, domaine) ne sont jamais écrits dans le dépôt : ils viennent de local.env
 (clé FORBIDDEN_TERMS, séparés par des virgules, insensible à la casse).
 
-Usage : check_repo.py [--staged | --all] [--root DIR] [--local-env FICHIER]
+Usage : check_repo.py [--staged | --all] [--root DIR] [--local-env FICHIER] [--identity]
+L'identité git (auteur des commits) n'est contrôlée que sur demande (--identity) : elle ne bloque pas un commit.
 Faux positif : ajouter le commentaire « check-repo: ignore » sur la ligne concernée.
 Sortie : une ligne par constat (type, fichier:ligne), jamais la valeur trouvée.
 Codes de sortie : 0 rien trouvé ; 1 constats ; 2 erreur d'usage ou dépôt introuvable.
@@ -113,7 +114,7 @@ def check_identity(root, terms):
     return findings
 
 
-def run(root, mode, local_env):
+def run(root, mode, local_env, identity=False):
     terms = load_terms(local_env)
     report = []
     for name in files_to_scan(root, mode):
@@ -122,7 +123,8 @@ def run(root, mode, local_env):
             continue
         for kind, number in scan_text(content, terms):
             report.append("%s : %s:%d" % (kind, name, number))
-    report += ["%s" % kind for kind, _ in check_identity(root, terms)]
+    if identity:
+        report += ["%s" % kind for kind, _ in check_identity(root, terms)]
     return report, bool(terms)
 
 
@@ -131,13 +133,14 @@ def main(argv=None):
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--staged", action="store_true", help="contenu de l'index (défaut)")
     group.add_argument("--all", action="store_true", help="tous les fichiers suivis")
+    parser.add_argument("--identity", action="store_true", help="contrôle aussi user.name et user.email")
     parser.add_argument("--root", default=".")
     parser.add_argument("--local-env", default=None, help="défaut : local.env à la racine du dépôt")
     args = parser.parse_args(argv)
     root = Path(args.root).resolve()
     local_env = args.local_env or str(root / "local.env")
     try:
-        report, has_terms = run(root, "all" if args.all else "staged", local_env)
+        report, has_terms = run(root, "all" if args.all else "staged", local_env, args.identity)
     except RuntimeError as error:
         print("erreur git : %s" % error, file=sys.stderr)
         return 2

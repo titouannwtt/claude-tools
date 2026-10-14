@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Publie un skill : contrôle des secrets et de l'identité, commit, push, puis synchronise l'autre machine.
+# Publie un skill : contrôle des secrets et des noms personnels, commit, push, puis synchronise l'autre machine.
 # Usage : tools/publish_skill.sh <nom-du-skill> ["message de commit"]
 # Réglages locaux (local.env, jamais versionné) : PEER_SSH (arguments ssh de l'autre machine),
 # PEER_PRE (commande à lancer avant, ex. charger l'agent SSH), PEER_REPO (dossier du dépôt chez l'autre).

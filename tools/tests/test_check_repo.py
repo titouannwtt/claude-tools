@@ -94,10 +94,16 @@ class CliTest(unittest.TestCase):
         code, _, _ = self.run_check()
         self.assertEqual(code, 0)
 
-    def test_identite_git_avec_terme_interdit(self):
+    def test_identite_git_ne_bloque_pas_par_defaut(self):
         self.git("config", "user.name", "Zorglub Dupont")
         self.stage("a.md", "propre\n")
-        code, out, _ = self.run_check()
+        code, _, _ = self.run_check()
+        self.assertEqual(code, 0)
+
+    def test_identite_git_signalee_sur_demande(self):
+        self.git("config", "user.name", "Zorglub Dupont")
+        self.stage("a.md", "propre\n")
+        code, out, _ = self.run_check("--identity")
         self.assertEqual(code, 1)
         self.assertIn("identité git (user.name)", out)
 
