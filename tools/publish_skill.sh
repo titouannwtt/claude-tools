@@ -34,6 +34,7 @@ fi
 git pull -q --rebase
 git push -q
 echo "poussé : $(git log --oneline -1)"
+./install.sh >/dev/null && echo "liens locaux à jour"
 
 env_get() { { grep -E "^$1=" local.env 2>/dev/null || true; } | head -1 | cut -d= -f2-; }
 peer_ssh="$(env_get PEER_SSH)"
