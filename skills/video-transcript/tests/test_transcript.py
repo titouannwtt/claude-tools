@@ -113,7 +113,10 @@ class CliTest(unittest.TestCase):
         self.assertIn("429", data["error"])
 
     def test_proxy_demande_sans_configuration_renvoie_code_5(self):
-        code, data = self.run_cli("subs", "dQw4w9WgXcQ", "--use-proxy", "--out", str(self.dir / "out"))
+        empty = self.dir / "empty.env"
+        empty.write_text("", encoding="utf-8")  # isole le test du vrai local.env de la machine
+        code, data = self.run_cli("subs", "dQw4w9WgXcQ", "--use-proxy", "--out", str(self.dir / "out"),
+                                  CLAUDE_TOOLS_LOCAL=str(empty))
         self.assertEqual(code, 5)
         self.assertIn("IPROYAL_RESIDENTIAL_URL", data["error"])
 
