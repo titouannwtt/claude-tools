@@ -73,6 +73,19 @@ def should_reexec(argv0, prefix, env, venv_python):
             and not env.get("REPO_SHOWCASE_NO_REEXEC"))
 
 
+
+def snap(target, **kwargs):
+    """Screenshot of a page or locator, retried twice: older headless Chromium builds sometimes fail with
+    "Unable to capture screenshot" on a frame that is not painted yet."""
+    for attempt in range(3):
+        try:
+            return target.screenshot(**kwargs)
+        except Exception as error:  # noqa: BLE001 - only this transient error is retried
+            if "Unable to capture screenshot" not in str(error) or attempt == 2:
+                raise
+            page = getattr(target, "page", target)
+            page.wait_for_timeout(800)
+
 def load_playwright():
     try:
         from playwright.sync_api import sync_playwright
@@ -321,7 +334,7 @@ def frame_png(browser, source, target, kind, theme, url, scale):
     try:
         page = context.new_page()
         page.set_content(page_html)
-        page.locator("#stage").screenshot(path=str(target), omit_background=True)
+        snap(page.locator("#stage"), path=str(target), omit_background=True)
     finally:
         context.close()
 
@@ -376,12 +389,12 @@ def shoot(url, out, routes, widths, themes, full_page=False, selector=None, wait
                             if selector:
                                 locator = page.locator(selector).first
                                 try:
-                                    locator.screenshot(path=str(path), timeout=15000)
+                                    snap(locator, path=str(path), timeout=15000)
                                 except Exception as error:  # noqa: BLE001
                                     raise Failure(EXIT_USAGE, "selector %s not capturable on %s: %s"
                                                   % (selector, target, first_line(error)))
                             else:
-                                page.screenshot(path=str(path), full_page=full_page)
+                                snap(page, path=str(path), full_page=full_page)
                             page.close()
                             files.append(file_entry(path, route=route, width=width, theme=theme, framed=False))
                             if frame != "none":
@@ -1093,11 +1106,11 @@ def render_preview(body, repo, readme_dir, out, widths, themes):
                             pass
                         page.wait_for_timeout(1500 if has_svg else 200)
                         full = Path(out) / ("readme-%d-%s.png" % (width, theme))
-                        page.screenshot(path=str(full), full_page=True)
+                        snap(page, path=str(full), full_page=True)
                         shots.append(file_entry(full, kind="full", width=width, theme=theme))
                         if width == desktop:
                             fold = Path(out) / ("readme-fold-%s.png" % theme)
-                            page.screenshot(path=str(fold), clip={"x": 0, "y": 0, "width": width, "height": 900})
+                            snap(page, path=str(fold), clip={"x": 0, "y": 0, "width": width, "height": 900})
                             shots.append(file_entry(fold, kind="fold", width=width, theme=theme))
                     finally:
                         context.close()
@@ -1176,14 +1189,13 @@ def social(repo, source, out, bg="#0d1117", fit="contain", delay=1500):
                     page = context.new_page()
                     page.goto(target, wait_until="load", timeout=30000)
                     page.wait_for_timeout(delay)
-                    page.screenshot(path=str(out), clip={"x": 0, "y": 0, "width": 1280, "height": 640})
+                    snap(page, path=str(out))  # the viewport is exactly 1280x640
                     if out.stat().st_size > SOCIAL_MAX_BYTES:
                         warnings.append("PNG is %.2f MB (GitHub limit 1 MB): a JPEG version was written instead"
                                         % (out.stat().st_size / 1e6))
                         jpeg_path = out.with_suffix(".jpg")
                         for quality in (90, 80, 70, 55):
-                            page.screenshot(path=str(jpeg_path), type="jpeg", quality=quality,
-                                            clip={"x": 0, "y": 0, "width": 1280, "height": 640})
+                            snap(page, path=str(jpeg_path), type="jpeg", quality=quality)
                             if jpeg_path.stat().st_size <= SOCIAL_MAX_BYTES:
                                 break
                         jpeg = jpeg_path
