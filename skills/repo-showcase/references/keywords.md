@@ -17,6 +17,16 @@ description and the README. The list is a starting point: the agent checks it wi
 GitHub repository search matches the name, description and topics by default, the README only with `in:readme`.
 There is no published ranking formula: do not promise a position.
 
+## Seeds and brands
+
+Existing topics, `--seed` terms and multi-word domain phrases are the strongest seeds; similar-repository queries
+are the strongest seed pairs plus a `topic:a topic:b` query from the two best existing topics. Brand names are weak:
+the repository name, the owner, the owner's other repositories, "by X" in the description, and headings naming a
+product of the owner. They never seed a query and are never proposed (`brand: true`; they can stay "covered").
+Generic single words (bot, fork, tool, app, data, code, countries, languages) never start a search. The owner's own
+repositories and starless forks are not "similar"; the upstream (fork parent or `upstream` remote) is similar but not
+an independent source. `missing` needs `independent_sources` of at least 2.
+
 ## Scoring (0 to 100)
 
 Sources count (30), similar-repository weight (30), seed relevance (25), log of `repo_count` (15, left out and rescaled

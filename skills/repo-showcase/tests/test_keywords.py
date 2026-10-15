@@ -36,7 +36,7 @@ class FakeNet:
     """Replacement for the gh and HTTP helpers: canned answers, every request recorded as one string."""
 
     def __init__(self, fail=(), meta=None, quota=297):
-        self.requests, self.fail, self.quota = [], tuple(fail), quota
+        self.requests, self.fail, self.quota, self.siblings = [], tuple(fail), quota, []
         self.meta = meta if meta is not None else {"visibility": "PUBLIC", "description": None, "topics": [],
                                                   "parent": None}
         self.similar = [
@@ -48,9 +48,13 @@ class FakeNet:
              "topics": ["speech-recognition", "text-to-speech", "ukulele-only-by-accident"]},
             {"full_name": "acme-corp/chordly", "stargazers_count": 99999, "description": "self",
              "topics": ["itself-only"]},
-            {"full_name": "up/stream", "stargazers_count": 70000, "description": "parent",
+            {"full_name": "up/stream", "stargazers_count": 70000, "description": "Chord detection for ukulele players",
              "topics": ["parent-only"]},
         ]
+
+    def owner_repos(self, owner):
+        self.requests.append("owner repos " + owner)
+        return list(self.siblings)
 
     def repo_meta(self, slug):
         self.requests.append("repo view " + slug)
@@ -90,6 +94,7 @@ class FakeNet:
     def patch(self):
         patches = [mock.patch.object(keywords, "_gh", self.gh), mock.patch.object(keywords, "_http_json", self.http),
                    mock.patch.object(keywords, "_repo_meta", self.repo_meta),
+                   mock.patch.object(keywords, "_owner_repos", self.owner_repos),
                    mock.patch.object(keywords, "PACE_INTERVAL", 0), mock.patch.object(keywords, "HTTP_INTERVAL", 0),
                    mock.patch.object(keywords, "CRATES_INTERVAL", 0)]
         for patcher in patches:
@@ -279,7 +284,8 @@ class RunTest(Case):
         scores = [k["score"] for k in data["keywords"]]
         self.assertEqual(scores, sorted(scores, reverse=True))
         for item in data["keywords"]:
-            self.assertEqual(set(item), {"term", "score", "sources", "as_topic", "repo_count", "covered"})
+            self.assertEqual(set(item), {"term", "score", "brand", "independent_sources", "sources", "as_topic",
+                                         "repo_count", "covered"})
             self.assertEqual(set(item["covered"]), {"description", "topics", "readme"})
             self.assertTrue(item["as_topic"] is None or keywords.TOPIC_RE.match(item["as_topic"]))
             self.assertTrue(all(set(s) == {"source", "evidence"} for s in item["sources"]))
@@ -297,12 +303,12 @@ class RunTest(Case):
         self.assertIsNone(phrase["as_topic"])
         self.assertEqual({s["source"] for s in phrase["sources"]}, {"duckduckgo"})
         self.assertNotIn("unrelated thing", by_term)
-        # the repository itself and its fork parent are not "similar"
+        # the repository itself is not "similar"; its upstream parent is, but brings no independent source
         names = [r["full_name"] for r in data["similar_repos"]]
-        self.assertEqual(names[0], "big/chords")
+        self.assertEqual(names[:2], ["up/stream", "big/chords"])
         self.assertNotIn("acme-corp/chordly", names)
-        self.assertNotIn("up/stream", names)
-        self.assertNotIn("parent-only", {k["term"] for k in data["keywords"]})
+        self.assertEqual(by_term["parent only"]["independent_sources"], 0)
+        self.assertNotIn("parent only", data["placement"]["missing"])
         placement = data["placement"]
         self.assertIn("ukulele", placement["topics"])           # existing relevant topic kept
         self.assertTrue(all(keywords.TOPIC_RE.match(t) for t in placement["topics"]))
@@ -363,7 +369,7 @@ class RunTest(Case):
         repo = self.repo(self.FILES, origin="https://github.com/acme-corp/chordly.git")
         boom = mock.Mock(side_effect=AssertionError("network call with --no-remote"))
         with mock.patch.object(keywords, "_gh", boom), mock.patch.object(keywords, "_http_json", boom), \
-                mock.patch.object(keywords, "_repo_meta", boom), \
+                mock.patch.object(keywords, "_repo_meta", boom), mock.patch.object(keywords, "_owner_repos", boom), \
                 mock.patch("urllib.request.urlopen", boom), mock.patch("subprocess.run", wraps=__import__("subprocess").run) as sub:
             code, data = self.run_cmd(repo, "--no-remote")
         self.assertEqual(code, 0)
@@ -387,7 +393,7 @@ class RunTest(Case):
         self.assertEqual(code, 0)
         self.assertTrue(data["private"])
         self.assertEqual(data["privacy"], "generic terms only")
-        sent = [r for r in net.requests if not r.startswith("repo view")]
+        sent = [r for r in net.requests if not r.startswith(("repo view", "owner repos"))]
         self.assertTrue(sent)
         blob = " ".join(sent).lower()
         for secret in ("secret", "acme", "roadmap", "payroll-export", "noreply", "tester", "@"):
@@ -564,6 +570,205 @@ class SimilarFilterTest(Case):
         terms = {k["term"] for k in data["keywords"]}
         self.assertFalse({"speech recognition", "text to speech"} & terms)
         self.assertTrue(all(r["overlap"] >= 2 for r in data["similar_repos"]))
+
+
+class SeedQualityTest(Case):
+    """Existing topics and domain phrases lead; brands and generic words never seed a query."""
+
+    DESC = "Production-grade Freqtrade fork for algorithmic trading on Hyperliquid. Maintained by Freqtrade France."
+    TOPICS = ["algorithmic-trading", "hyperliquid", "freqtrade", "hyperopt", "freqtrade-fork", "python"]
+    README = ("# Freqtrade Ultimate\n\nA fork of freqtrade for algorithmic trading, a bot for hyperliquid.\n\n"
+              "## FreqUI Ultimate\n\nThe dashboard.\n\n## Learn algorithmic trading\n\nText.\n")
+
+    def seeds(self, siblings=("frequi-ultimate", "docs")):
+        repo = self.repo({"README.md": self.README, "main.py": "x = 1\n" * 10}, name="freqtrade-ultimate",
+                         origin="https://github.com/titouannwtt/freqtrade-ultimate.git")
+        files = inventory.tracked_present(repo.path)
+        inv = inventory.collect(repo.path, remote=False)
+        meta = {"description": self.DESC, "topics": self.TOPICS}
+        protected = {keywords.term_key(t) for t in self.TOPICS}
+        brand = keywords.build_brand("freqtrade-ultimate", "titouannwtt", list(siblings), self.DESC, protected)
+        seeds, _ = keywords.collect_seeds(repo.path, files, inv, meta, [], [], brand)
+        return repo, seeds, brand
+
+    def test_topics_and_phrases_are_the_strongest_seeds(self):
+        _, seeds, _ = self.seeds()
+        pool = seeds.query_pool()
+        self.assertEqual(pool[0], "algorithmic trading")  # topic, phrase, in description, headings and intro
+        topics_first = [k for k in pool[:5]]
+        self.assertTrue(all({"topics"} & set(seeds.terms[k]["origins"]) for k in topics_first), topics_first)
+        self.assertGreater(seeds.strength("hyperliquid"), seeds.strength("production grade"))
+        self.assertLess(seeds.strength("freqtrade fork"), seeds.strength("freqtrade"))  # a vague phrase ranks lower
+        pairs = keywords.seed_pairs(pool)
+        self.assertEqual(pairs[0][0], "algorithmic trading")
+        self.assertTrue(all(a in pool[:8] and b in pool[:8] for a, b in pairs))
+
+    def test_topic_qualifier_query_uses_existing_topics(self):
+        _, seeds, _ = self.seeds()
+        query = seeds.topic_query()
+        self.assertEqual(query, "topic:algorithmic-trading topic:freqtrade")
+        only_one = keywords.Seeds()
+        only_one.add("chords", "topics")
+        only_one.add("music", "description")
+        self.assertIsNone(only_one.topic_query())
+
+    def test_brand_names_are_found_and_kept_out_of_queries(self):
+        _, seeds, brand = self.seeds()
+        self.assertTrue(brand.matches("freqtrade france"))         # "Maintained by Freqtrade France"
+        self.assertTrue(brand.matches("france"))
+        self.assertTrue(brand.matches("freqtrade ultimate"))        # repository name
+        self.assertTrue(brand.matches("titouannwtt"))               # owner
+        self.assertTrue(brand.matches("frequi ultimate"))           # sibling repository
+        self.assertFalse(brand.matches("freqtrade"))                # chosen as a topic: a normal term
+        self.assertFalse(brand.matches("docs"))                     # generic sibling name
+        long_name = keywords.build_brand("x", "y", ["freqtrade-france-strategies-simple-vwap"], "", set())
+        self.assertNotIn("freqtrade france strategies simple vwap", long_name.phrases)  # a description, not a brand
+        self.assertFalse(long_name.matches("france strategies"))
+        pool = seeds.query_pool()
+        for term in ("freqtrade france", "france", "frequi ultimate", "frequi", "freqtrade ultimate"):
+            self.assertNotIn(term, pool)
+        self.assertTrue(seeds.terms["frequi"]["brand"])             # product-name heading taints its words
+        self.assertTrue(seeds.terms["frequi ultimate"]["brand"])
+        self.assertFalse(seeds.terms["freqtrade"]["brand"])
+        self.assertFalse(seeds.terms["algorithmic trading"]["brand"])  # same heading words elsewhere stay normal
+        self.assertNotIn("frequi", seeds.word_weights())
+
+    def test_generic_single_words_never_seed_a_query(self):
+        _, seeds, _ = self.seeds()
+        pool = seeds.query_pool()
+        for word in ("bot", "fork", "france", "python", "ultimate", "production"):
+            self.assertNotIn(word, pool)
+        self.assertTrue(keywords.is_generic("bot") and keywords.is_generic("tool"))
+        self.assertTrue(keywords.is_generic("france") and keywords.is_generic("english"))
+        self.assertFalse(keywords.is_generic("trading bot"))   # inside a phrase it is fine
+        self.assertFalse(keywords.is_generic("hyperliquid"))
+        self.assertIn("freqtrade fork", seeds.terms)           # kept as a term, a topic of the repository
+
+    def run_end_to_end(self, **net_args):
+        repo, _, _ = self.seeds()
+        net = self.net(meta={"visibility": "PUBLIC", "description": self.DESC, "topics": self.TOPICS, "parent": None},
+                       **net_args)
+        net.siblings = ["frequi-ultimate", "docs", "freqtrade-ultimate"]
+        code, data = self.run_cmd(repo)
+        self.assertEqual(code, 0)
+        return net, data
+
+    def test_end_to_end_queries(self):
+        net, data = self.run_end_to_end()
+        queries = [(q["source"], q["query"]) for q in data["queries"]]
+        similar = [q for s_, q in queries if s_ == "github-similar"]
+        self.assertTrue(any(q.startswith("topic:") and q.count("topic:") == 2 for q in similar), similar)
+        self.assertTrue(any("algorithmic trading" in q for q in similar), similar)
+        spoken = " ".join(q for _, q in queries).lower()
+        for banned in ("france", "frequi", "ultimate", "titouannwtt"):
+            self.assertNotIn(banned, spoken)
+        for source, query in queries:
+            if source in ("github-topics", "stackexchange", "duckduckgo"):
+                self.assertNotIn(query, ("bot", "fork", "france", "python", "tool"))
+        self.assertIn("frequi ultimate", data["brand_names"])
+        self.assertEqual(data["calls"]["github-owner"], 1)
+
+    def test_brand_terms_stay_covered_but_are_never_proposed(self):
+        net, data = self.run_end_to_end()
+        by_term = {k["term"]: k for k in data["keywords"]}
+        brand_terms = [k for k in data["keywords"] if k["brand"]]
+        self.assertIn("freqtrade france", by_term)
+        self.assertTrue(by_term["freqtrade france"]["brand"])
+        self.assertTrue(by_term["freqtrade france"]["covered"]["description"])
+        placement = data["placement"]
+        proposed = set(placement["missing"]) | set(placement["readme_terms"]) | set(placement["description_phrases"])
+        for item in brand_terms:
+            self.assertNotIn(item["term"], proposed)
+            self.assertNotIn(item["as_topic"], placement["topics_new"])
+        for generic in ("bot", "fork", "france"):
+            self.assertNotIn(generic, proposed)
+
+
+class SimilarExclusionTest(Case):
+    SEEDS = {"chord detection": 1.0, "ukulele": 1.0, "beat tracking": 1.0, "drum kits": 1.0}
+
+    def item(self, name, stars, topics, fork=False):
+        return {"full_name": name, "stargazers_count": stars, "topics": topics, "fork": fork,
+                "description": "chord detection ukulele"}
+
+    def run_similar(self, items, owner=None, parents=()):
+        run = keywords.Run(25)
+        pool = keywords.Pool(lambda key: False)
+        with mock.patch.object(keywords, "_gh", lambda args: {"items": items}), \
+                mock.patch.object(keywords, "PACE_INTERVAL", 0):
+            kept, dropped = keywords.from_similar(run, pool, ["q"], {"me/self"}, self.SEEDS, owner, parents)
+        return kept, dropped, pool
+
+    def test_owner_repositories_are_excluded(self):
+        items = [self.item("Me/other-project", 900, ["mine"]), self.item("me/self", 5, ["x"]),
+                 self.item("third/party", 10, ["theirs"])]
+        kept, dropped, pool = self.run_similar(items, owner="me")
+        self.assertEqual([r["full_name"] for r in kept], ["third/party"])
+        self.assertNotIn("mine", pool.items)
+        self.assertEqual(dropped, [])
+
+    def test_zero_star_forks_are_excluded_starred_forks_kept(self):
+        items = [self.item("a/fork-none", 0, ["noise"], fork=True), self.item("b/fork-liked", 40, ["liked"], fork=True),
+                 self.item("c/plain-none", 0, ["plain"], fork=False)]
+        kept, _, pool = self.run_similar(items)
+        self.assertEqual({r["full_name"] for r in kept}, {"b/fork-liked", "c/plain-none"})
+        self.assertNotIn("noise", pool.items)
+
+    def test_upstream_is_similar_but_not_an_independent_source(self):
+        items = [self.item("up/stream", 90000, ["upstream-only", "shared"]),
+                 self.item("other/one", 8000, ["shared"])]
+        kept, _, pool = self.run_similar(items, parents=["Up/Stream"])
+        self.assertEqual([r["full_name"] for r in kept], ["up/stream", "other/one"])
+        up_only, shared = pool.items["upstream only"], pool.items["shared"]
+        self.assertGreater(up_only.sim_weight, 0)                 # still similar: it counts for the score
+        self.assertEqual(up_only.sim_other, [])
+        self.assertEqual(up_only.independent(), 0)
+        self.assertEqual(shared.sim_other, ["other/one"])         # 8000 stars: heavy enough alone
+        self.assertEqual(shared.independent(), 1)
+
+    def test_upstream_remote_slug(self):
+        repo = self.repo({"a.txt": "x"}, origin="https://github.com/me/mine.git")
+        self.assertIsNone(keywords._upstream_slug(repo.path))
+        repo.git("remote", "add", "upstream", "https://github.com/freqtrade/freqtrade.git")
+        self.assertEqual(keywords._upstream_slug(repo.path), "freqtrade/freqtrade")
+
+
+class MissingSourcesTest(unittest.TestCase):
+    def cand(self, sources=(), others=(), weight=0.0):
+        cand = keywords.Candidate("term")
+        for source in sources:
+            cand.add(source, "ev")
+        cand.sim_other, cand.sim_other_weight = list(others), weight
+        return cand
+
+    def test_single_light_similar_repo_is_not_a_source(self):
+        light = self.cand(["github-similar"], ["a/b"], weight=2.0)
+        self.assertEqual(light.independent(), 0)
+        heavy = self.cand(["github-similar"], ["a/b"], weight=keywords.SIM_MIN_WEIGHT + 0.1)
+        self.assertEqual(heavy.independent(), 1)
+        two = self.cand(["github-similar"], ["a/b", "c/d"], weight=1.0)
+        self.assertEqual(two.independent(), 1)
+
+    def test_seed_words_do_not_count(self):
+        self.assertEqual(self.cand(["seed:topics", "seed:description"]).independent(), 0)
+        self.assertEqual(self.cand(["github-topics", "stackexchange", "npm", "crates"]).independent(), 3)
+
+    def keyword(self, term, independent, score=60.0, **flags):
+        item = {"term": term, "score": score, "as_topic": keywords.topic_slug(term), "independent_sources": independent,
+                "covered": {"description": False, "topics": False, "readme": False}}
+        item.update(flags)
+        return item
+
+    def test_missing_needs_two_independent_sources_and_a_real_term(self):
+        ranked = [self.keyword("single source", 1), self.keyword("two sources", 2), self.keyword("echarts", 3),
+                  self.keyword("vendor name", 3, brand=True), self.keyword("bot", 3),
+                  self.keyword("covered one", 3)]
+        ranked[-1]["covered"]["readme"] = True
+        placement = keywords.place(ranked, [])
+        self.assertEqual(placement["missing"], ["two sources", "echarts"])
+        self.assertNotIn("vendor-name", placement["topics_new"])
+        self.assertNotIn("bot", placement["topics_new"])
+        self.assertIn("single-source", placement["topics_new"])   # a weak topic can still be proposed, not "missing"
 
 
 class PlacementTest(unittest.TestCase):

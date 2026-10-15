@@ -9,6 +9,11 @@ repositories (topics weighted by log(1 + stars)), GitHub topic search, npm (JS/T
 tags and DuckDuckGo suggestions (phrases only), then a score and a placement proposal. Nothing is written except with
 --save (<git dir>/repo-showcase/keywords.json, mode 600).
 
+Seeds: existing topics, --seed and multi-word phrases lead. Brand names (repository, owner, the owner's other
+repositories, "by X" in the description, product-name headings) and generic single words (bot, fork, countries...)
+never seed a search; brands are never proposed as missing. The owner's repositories and starless forks are not
+similar; the upstream parent is similar but not an independent source; `missing` needs 2 independent sources.
+
 Similar repositories: searched with the 2 or 3 strongest pairs of seed terms (strength: origin weight, pairs of words,
 README frequency), then filtered. A repository counts only if its topics and description contain at least 2 distinct
 seed terms (1 with fewer than 4 seeds; a term inside a longer matched term is one hit), and its topics weigh
@@ -48,8 +53,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import inventory  # noqa: E402
-from common import (EXIT_MISSING, EXIT_OK, EXIT_USAGE, EXIT_NETWORK, Failure, gh_json, github_slug,  # noqa: E402
-                    print_json, read_text, repo_root, state_dir)
+from common import (EXIT_MISSING, EXIT_OK, EXIT_USAGE, EXIT_NETWORK, GITHUB_REMOTE_RE, Failure, gh_json,  # noqa: E402
+                    git_call, github_slug, print_json, read_text, repo_root, state_dir)
 
 TOPIC_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,49}$")
 MAX_TOPICS = 20
@@ -81,7 +86,17 @@ documentation docs example examples requirements setup started getting quick sta
 roadmap support faq author authors thanks download downloads verify publish release releases version versions file
 files using use used like get make makes made new app apps simple easy free open source repository repo project
 projects readme table contents link links badge badges screenshot screenshots demo todo get gets inside
+maintained maintainer maintainers developed created powered includes included including choose exists existing
+without anything fresh path migrate disclaimer
 """.split())
+# Single words too vague to start a search or a topic on their own (they may still sit inside a longer term):
+# generic nouns, countries, human and programming languages.
+GENERIC_WORDS = frozenset("""
+bot bots fork forks tool tools app apps project projects data code software system platform ultimate production grade
+custom multi learn highlights france germany spain italy china japan india usa english french german spanish chinese
+japanese korean russian portuguese python javascript typescript java rust golang
+""".split())
+SIM_MIN_WEIGHT = math.log1p(100)  # a term backed by one similar repository counts as a source above this weight
 ORIGIN_WEIGHT = OrderedDict((("--seed", 1.0), ("topics", 1.0), ("package.json", 1.0), ("pyproject.toml", 1.0),
                              ("Cargo.toml", 1.0), ("description", 1.0), ("readme-heading", 0.8),
                              ("project-type", 0.7), ("language", 0.7), ("readme-intro", 0.5)))
@@ -113,6 +128,49 @@ def topic_slug(term):
 def tokens_of(text):
     return [t for t in TOKEN_RE.findall((text or "").lower()) if not t.isdigit() and len(t) >= 3
             and t not in STOPWORDS]
+
+
+def is_generic(key):
+    """True for a single word too vague to be a search or a topic by itself."""
+    return " " not in key and (key in GENERIC_WORDS or key in NOISE or key in STOPWORDS)
+
+
+BY_RE = re.compile(r"\b[Bb]y\s+((?:[A-Z][\w.-]*)(?:\s+[A-Z][\w.-]*){0,3})")
+
+
+class Brand:
+    """Names that identify the maintainer or the products (repository, owner, sibling repositories, "by X" in the
+    description): weak as keywords, never searched, never proposed as missing."""
+
+    def __init__(self, phrases=(), tokens=()):
+        self.phrases = [p for p in OrderedDict.fromkeys(phrases) if p]
+        self.tokens = set(tokens)
+
+    def matches(self, key):
+        padded = " %s " % key
+        if any(" %s " % p in padded for p in self.phrases) or set(key.split()) & self.tokens:
+            return True
+        return " " in key and any(" " in p and padded in " %s " % p for p in self.phrases)
+
+
+def build_brand(name, owner, siblings, description, protected):
+    """Brand names; `protected` are the keys of the existing topics and --seed terms: a word the maintainer chose to
+    describe the project (freqtrade in "Freqtrade France") stays a normal term."""
+    words = {w for key in protected for w in key.split()}
+    phrases, tokens = [], set()
+    for text in [name, owner] + list(siblings):
+        key = term_key(text)
+        # A name of four words or more is a description, not a brand.
+        if 3 <= len(key) and len(key.split()) <= 3 and key not in protected and (" " in key or not is_generic(key)):
+            phrases.append(key)
+    owner_key = term_key(owner)
+    if owner_key and " " not in owner_key:
+        tokens.add(owner_key)
+    for found in BY_RE.findall(description or ""):
+        key = term_key(found)
+        phrases.append(key)
+        tokens.update(w for w in key.split() if len(w) >= 3 and w not in words)
+    return Brand(phrases, tokens)
 
 
 def extract_terms(text, noise=False):
@@ -216,49 +274,68 @@ def manifest_keywords(repo, files):
 class Seeds:
     """Seed terms: key -> {"origins": [...], "weight": best origin weight}, plus word weights for the relevance."""
 
-    def __init__(self, blocked=()):
+    def __init__(self, blocked=(), brand=None, protected=()):
         self.terms = OrderedDict()
         self.blocked = [b for b in blocked if b]
+        self.brand = brand or Brand()
+        self.protected = set(protected)
 
     def blocked_term(self, key):
         padded = " %s " % key
         # The name or owner (inside the term, or the term inside a multi-word name: a brand) never leaves.
         return any(" %s " % b in padded or (" " in key and padded in " %s " % b) for b in self.blocked)
 
-    def add(self, text, origin):
+    def add(self, text, origin, taint=False):
+        """taint: the term comes from a brand context (a heading naming a product): brand unless the maintainer
+        chose it as a topic or --seed."""
         key = term_key(text)
         if not key or self.blocked_term(key):
             return
-        entry = self.terms.setdefault(key, {"origins": [], "weight": 0.0})
+        flag = self.brand.matches(key) or (taint and key not in self.protected)
+        entry = self.terms.setdefault(key, {"origins": [], "weight": 0.0, "brand": True})
+        entry["brand"] = entry["brand"] and flag
         if origin not in entry["origins"]:
             entry["origins"].append(origin)
         entry["weight"] = max(entry["weight"], ORIGIN_WEIGHT[origin])
 
-    def add_many(self, texts, origin):
+    def add_many(self, texts, origin, taint=False):
         for text in texts:
-            self.add(text, origin)
+            self.add(text, origin, taint)
 
     def word_weights(self):
         weights = {}
         for key, entry in self.terms.items():
             for word in key.split():
-                if word not in STOPWORDS:
+                if word not in STOPWORDS and not entry["brand"]:
                     weights[word] = max(weights.get(word, 0.0), entry["weight"])
         return weights
 
     def strength(self, key):
-        """Origin weight, plus a little for a pair of words and for the README coming back to the term."""
+        """Origin weight, plus 0.5 for an existing topic or --seed, 0.25 for a phrase of several words and up to
+        0.5 for the README coming back to the term, minus 0.4 for a phrase holding a generic word ("multi bot")."""
         entry = self.terms[key]
-        return entry["weight"] + (0.25 if " " in key else 0.0) + min(entry.get("freq", 0), 20) / 40.0
+        explicit = 0.5 if {"topics", "--seed"} & set(entry["origins"]) else 0.0
+        vague = -0.4 if " " in key and set(key.split()) & GENERIC_WORDS else 0.0
+        return entry["weight"] + explicit + (0.25 if " " in key else 0.0) + min(entry.get("freq", 0), 20) / 40.0 + vague
 
     def specific(self):
-        """{term: origin weight} of the seeds that describe the project (not its language or type)."""
+        """{term: origin weight} of the seeds that describe the project: not its language or type, not a brand,
+        not a section name."""
         weak = {"language", "project-type"}
-        return {k: e["weight"] for k, e in self.terms.items() if not set(e["origins"]) <= weak and k not in NOISE}
+        return {k: e["weight"] for k, e in self.terms.items()
+                if not set(e["origins"]) <= weak and k not in NOISE and not e["brand"]}
 
     def query_pool(self):
-        """Seed terms worth sending to a search, strongest first (language and project type left out)."""
-        return sorted(self.specific(), key=lambda k: (-self.strength(k), k))
+        """Seed terms worth sending to a search, strongest first. A generic single word never starts a search."""
+        return sorted((k for k in self.specific() if not is_generic(k)), key=lambda k: (-self.strength(k), k))
+
+    def topic_query(self):
+        """`topic:a topic:b` from the two strongest existing topics or --seed terms with a valid slug and no generic
+        word (`topic:freqtrade-fork` is too narrow), or None."""
+        slugs = [topic_slug(k) for k in self.query_pool()
+                 if {"topics", "--seed"} & set(self.terms[k]["origins"]) and not set(k.split()) & GENERIC_WORDS]
+        slugs = [x for x in slugs if x]
+        return " ".join("topic:" + x for x in slugs[:2]) if len(slugs) >= 2 else None
 
 
 def seed_pairs(pool, limit=3, max_words=3):
@@ -280,8 +357,9 @@ def seed_pairs(pool, limit=3, max_words=3):
     return out
 
 
-def collect_seeds(repo, files, inv, meta, extra, blocked):
-    seeds = Seeds(blocked)
+def collect_seeds(repo, files, inv, meta, extra, blocked, brand=None):
+    protected = {term_key(t) for t in list(extra) + list((meta or {}).get("topics") or [])}
+    seeds = Seeds(blocked, brand, protected)
     seeds.add_many(extra, "--seed")
     if meta:
         seeds.add_many(meta.get("topics") or [], "topics")
@@ -293,8 +371,9 @@ def collect_seeds(repo, files, inv, meta, extra, blocked):
     body = " %s " % term_key(text or "")
     if text:
         headings, intro = readme_parts(text)
-        for heading in headings:
-            seeds.add_many(extract_terms(heading, noise=True), "readme-heading")
+        for heading in headings:  # a heading that names a product of the owner taints its words
+            seeds.add_many(extract_terms(heading, noise=True), "readme-heading",
+                           taint=seeds.brand.matches(term_key(heading)))
         # Words of the opening paragraph count when the README comes back to them (3 times, 2 for a pair).
         seeds.add_many([t for t in extract_terms(intro, noise=True)
                         if body.count(" %s " % t) >= (2 if " " in t else 3)], "readme-intro")
@@ -331,6 +410,27 @@ def _repo_meta(slug):
         parent = parent.get("nameWithOwner") or ("%s/%s" % (owner, parent.get("name")) if owner else None)
     return {"visibility": (view.get("visibility") or "").upper() or None, "description": view.get("description"),
             "topics": inventory._topic_names(view.get("repositoryTopics")), "parent": parent or None}
+
+
+def _owner_repos(owner):
+    """Names of the owner's repositories (the owner's own read, for the brand names), [] if unavailable."""
+    try:
+        listing = gh_json(["repo", "list", owner, "--limit", "100", "--json", "name"], check=False)
+    except (Failure, ValueError):
+        return []
+    return [item["name"] for item in listing or [] if isinstance(item, dict) and item.get("name")]
+
+
+def _upstream_slug(repo):
+    """"owner/name" of an `upstream` git remote on github.com, or None."""
+    result = run_git_remote(repo)
+    match = GITHUB_REMOTE_RE.search(result) if result else None
+    return "%s/%s" % match.groups() if match else None
+
+
+def run_git_remote(repo):
+    code, out, _ = git_call(repo, "remote", "get-url", "upstream", timeout=10)
+    return out.strip() if code == 0 else ""
 
 
 def _http_json(url, headers=None):
@@ -439,6 +539,8 @@ class Candidate:
         self.sources = OrderedDict()   # (source, evidence)
         self.sim_weight = 0.0
         self.sim_repos = []
+        self.sim_other = []            # similar repositories other than the upstream parent
+        self.sim_other_weight = 0.0
         self.relevance = 0.0
         self.repo_count = None
         self.score = 0.0
@@ -448,6 +550,14 @@ class Candidate:
 
     def groups(self):
         return {SOURCE_GROUP.get(s.split(":")[0], s) for s, _ in self.sources}
+
+    def independent(self):
+        """Independent external sources: github-similar counts only with 2 repositories (not the upstream) or one
+        heavy enough; the repository's own words never count."""
+        groups = {g for g in self.groups() if g not in ("seed", "github-similar")}
+        if len(self.sim_other) >= 2 or self.sim_other_weight >= SIM_MIN_WEIGHT:
+            groups.add("github-similar")
+        return len(groups)
 
     def phrase_only(self):
         return {s for s, _ in self.sources} <= {"duckduckgo"}
@@ -498,7 +608,7 @@ def seed_overlap(repo, seed_terms):
     return longest, sum(seed_terms[k] for k in longest)
 
 
-def from_similar(run, pool, queries, own, seed_terms, per_page=30):
+def from_similar(run, pool, queries, own, seed_terms, owner=None, parents=(), per_page=30):
     """Topics of the most starred repositories matching the seed queries, kept only when the repository really is
     about the project: its topics and description share at least 2 distinct seed terms (1 when there are fewer than
     4 seeds), and its contribution is weighted by that overlap. Returns (kept, dropped), both most starred first."""
@@ -508,9 +618,14 @@ def from_similar(run, pool, queries, own, seed_terms, per_page=30):
                              [("q", query), ("sort", "stars"), ("per_page", str(per_page))], query)
         for item in (data or {}).get("items") or []:
             name = item.get("full_name")
+            stars = int(item.get("stargazers_count") or 0)
             if not name or name.lower() in own or name in found:
                 continue
-            found[name] = {"full_name": name, "stars": int(item.get("stargazers_count") or 0),
+            if owner and name.split("/")[0].lower() == owner.lower():
+                continue  # the owner's own repositories are not a signal about the field
+            if item.get("fork") and stars == 0:
+                continue  # a fork nobody starred repeats its upstream
+            found[name] = {"full_name": name, "stars": stars,
                            "topics": [t for t in item.get("topics") or [] if isinstance(t, str)],
                            "description": item.get("description")}
     needed = 2 if len(seed_terms) >= 4 else 1
@@ -529,8 +644,12 @@ def from_similar(run, pool, queries, own, seed_terms, per_page=30):
         for topic in repo["topics"]:
             cand = pool.get(topic)
             if cand:
-                cand.sim_weight += math.log1p(repo["stars"]) * repo["overlap_weight"] / best
+                share = math.log1p(repo["stars"]) * repo["overlap_weight"] / best
+                cand.sim_weight += share
                 cand.sim_repos.append(repo["full_name"])
+                if repo["full_name"].lower() not in {p.lower() for p in parents}:  # the upstream is similar, not news
+                    cand.sim_other.append(repo["full_name"])
+                    cand.sim_other_weight += share
     for cand in pool.items.values():
         if cand.sim_repos:
             cand.add("github-similar",
@@ -646,8 +765,10 @@ def _overlap(key, chosen):
 
 
 def place(ranked, existing_topics):
-    """Topics, description phrases and README terms from the scored keywords (dicts, best first)."""
+    """Topics, description phrases and README terms from the scored keywords (dicts, best first). Brand names and
+    generic single words are never proposed (an existing topic stays); `missing` needs 2 independent sources."""
     existing = [t for t in existing_topics if TOPIC_RE.match(t)]
+    fit = [i for i in ranked if not i.get("brand") and not is_generic(i["term"])]
     topics, new = [], []
     for item in ranked:
         slug = item["as_topic"]
@@ -657,7 +778,7 @@ def place(ranked, existing_topics):
             if item["score"] >= 20:
                 topics.append(slug)
             continue
-        if len(topics) >= 15 or (len(topics) >= 10 and item["score"] < 30):
+        if item not in fit or len(topics) >= 15 or (len(topics) >= 10 and item["score"] < 30):
             continue
         topics.append(slug)
         new.append(slug)
@@ -670,28 +791,29 @@ def place(ranked, existing_topics):
         topics.remove(drop)
         new.remove(drop)
     phrases = []
-    for item in ranked:
+    for item in fit:
         if len(phrases) >= 3:
             break
         if len(item["term"].split()) >= 2 and item["score"] >= 15 and not _overlap(item["term"], phrases):
             phrases.append(item["term"])
-    for item in ranked:  # fewer than two phrases: complete with the best single words
+    for item in fit:  # fewer than two phrases: complete with the best single words
         if len(phrases) >= 2:
             break
         if item["term"] not in phrases and not _overlap(item["term"], phrases):
             phrases.append(item["term"])
     terms = []
-    for item in ranked:
+    for item in fit:
         if len(terms) >= 6:
             break
         if item["score"] >= 20 and not _overlap(item["term"], terms):
             terms.append(item["term"])
-    for item in ranked:
+    for item in fit:
         if len(terms) >= 3:
             break
         if item["term"] not in terms:
             terms.append(item["term"])
-    missing = [i["term"] for i in ranked if i["score"] >= 40 and not any(i["covered"].values())][:10]
+    missing = [i["term"] for i in fit if i["score"] >= 40 and not any(i["covered"].values())
+               and i.get("independent_sources", 2) >= 2][:10]
     return {"topics": topics, "topics_new": new, "description_phrases": phrases, "readme_terms": terms,
             "missing": missing}
 
@@ -751,7 +873,13 @@ def build(repo, extra_seeds=(), remote=True, max_search=25):
             blocked += [term_key(base), term_key(base.rsplit(".", 1)[0])]
     blocked = [b for b in dict.fromkeys(blocked) if len(b) >= 3]
 
-    seeds, readme_text = collect_seeds(repo, files, inv, meta, extra_seeds, blocked)
+    siblings = []
+    if remote and owner:
+        run.calls["github-owner"] = 1
+        siblings = [n for n in _owner_repos(owner) if n.lower() != (name or repo.name).lower()]
+    protected = {term_key(t) for t in list(extra_seeds) + list((meta or {}).get("topics") or [])}
+    brand = build_brand(name or repo.name, owner, siblings, (meta or {}).get("description"), protected)
+    seeds, readme_text = collect_seeds(repo, files, inv, meta, extra_seeds, blocked, brand)
     if not seeds.terms:
         raise Failure(EXIT_USAGE, "no seed term found in the repository: pass --seed TERM")
     word_weights = seeds.word_weights()
@@ -765,17 +893,22 @@ def build(repo, extra_seeds=(), remote=True, max_search=25):
 
     if remote:
         query_pool = seeds.query_pool()
-        own = {s.lower() for s in (slug, (meta or {}).get("parent")) if s}
+        parents = [x for x in ((meta or {}).get("parent"), _upstream_slug(repo)) if x]
         if query_pool:
-            sim_queries = ["%s %s" % pair for pair in seed_pairs(query_pool)] or query_pool[:2]
-            similar, dropped = from_similar(run, pool, sim_queries, own, seeds.specific())
+            topic_query = seeds.topic_query()
+            sim_queries = (["%s %s" % pair for pair in seed_pairs(query_pool, limit=2 if topic_query else 3)]
+                           + ([topic_query] if topic_query else [])) or query_pool[:2]
+            similar, dropped = from_similar(run, pool, sim_queries, {slug.lower()} if slug else set(),
+                                            seeds.specific(), owner or None, parents)
             from_topic_search(run, pool, query_pool[:4])
             stack = _stack(inv, set(files))
             if stack == "npm":
                 from_npm(run, pool, query_pool[:2])
             elif stack == "crates":
                 from_crates(run, pool, query_pool[:2])
-            single = OrderedDict.fromkeys(w for q in query_pool[:4] for w in q.split() if len(w) >= 3)
+            single = OrderedDict.fromkeys(w for q in query_pool[:4] for w in q.split()
+                                          if len(w) >= 3 and w not in GENERIC_WORDS | NOISE | STOPWORDS
+                                          and not brand.matches(w))
             from_stackexchange(run, pool, list(single)[:3])
             from_duckduckgo(run, pool, query_pool[:3], set(word_weights))
             fetch_counts(run, pool)
@@ -800,8 +933,9 @@ def build(repo, extra_seeds=(), remote=True, max_search=25):
     phrases = [c for c in scored if c.phrase_only()][:6]
     shown = [c for c in scored if not c.phrase_only()][:MAX_KEYWORDS - len(phrases)] + phrases
     for cand in sorted(shown, key=lambda c: (-c.score, c.key)):
+        is_brand = seeds.terms[cand.key]["brand"] if cand.key in seeds.terms else brand.matches(cand.key)
         keywords.append({
-            "term": cand.key, "score": cand.score,
+            "term": cand.key, "score": cand.score, "brand": is_brand, "independent_sources": cand.independent(),
             "sources": [{"source": s, "evidence": e} for s, e in cand.sources],
             "as_topic": None if cand.phrase_only() else topic_slug(cand.key),
             "repo_count": cand.repo_count,
@@ -820,6 +954,7 @@ def build(repo, extra_seeds=(), remote=True, max_search=25):
                            "overlap": r["overlap"]} for r in similar[:8]],
         "similar_repos_dropped": [{"full_name": r["full_name"], "stars": r["stars"], "reason": r["reason"]}
                                   for r in dropped[:5]],
+        "brand_names": (brand.phrases + sorted(brand.tokens))[:20],
         "calls": run.calls, "errors": run.errors, "queries": run.queries, "notes": notes,
     }
 
