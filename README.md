@@ -50,7 +50,7 @@ It is built around three goals:
 | `kit/agents/` | 10 subagents, each pinned to a model and an effort (table below) |
 | `kit/hooks/subagent-gate.py` | The routing hook that enforces the matrix |
 | `kit/settings.snippet.json` | Model pins, hook registration, no AI attribution in commits |
-| `skills/` | 9 skills, each with a tested script |
+| `skills/` | 10 skills, each with a tested script |
 | `lib/` | Helpers shared by skills (local settings, proxy fallback) |
 | `tools/` | Pre-commit checks and a one-command skill publisher |
 
@@ -82,6 +82,7 @@ It is built around three goals:
 | [`mac-control`](skills/mac-control) | Drives Mac apps and forms with safety rails | cua-driver, macOS | no |
 | [`geo-seo`](skills/geo-seo) | Gets a site recommended by Google and AI assistants: audit, plan, fixes, measurement | Python | partly (audit scripts need network) |
 | [`repo-showcase`](skills/repo-showcase) | Makes a repository publish-ready: interview, audit of secrets and personal data (history included), AI-mention cleanup, structure review, custom animated visuals, screenshots, live counters | git, gh; Playwright and git-filter-repo for some steps | no |
+| [`promo-codes`](skills/promo-codes) | Finds publicly shared promo codes for a merchant and ranks them best first (listed, never tested) | yt-dlp (optional) | no |
 
 ## Install
 
