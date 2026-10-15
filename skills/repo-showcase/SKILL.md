@@ -50,7 +50,8 @@ Run `python3 $S doctor` once per machine: it says what is possible (history rewr
    - Screenshots: `shoot <url> --out assets/screenshots` (live site, or `--serve "<run hint>"` for a local app);
      `demo` for a short GIF when interaction is the point. Check every capture for personal data.
    - README: follow the chosen pattern; counters through markers and `counts sync`; `counts lint` must pass.
-     Offer `counts install-action` when a count changes often.
+     Offer `counts install-action` when a count changes often (it counts tracked files, so it also suits very large
+     repositories).
    - Structure: present the `structure` findings as suggestions (see
      [references/structure.md](references/structure.md)); apply only the accepted ones, with `git mv`.
 6. **Verify**: `preview <repo>` (static checks + renders at 880 and 390 px, light and dark). Open

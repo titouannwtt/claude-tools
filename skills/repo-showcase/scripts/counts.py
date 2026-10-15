@@ -7,11 +7,14 @@ Action keeps the numbers of the README and the SVG visuals up to date. It must n
 Usage: counts.py {sync|lint|badge|install-action} <repo> [options]
   sync <repo> [--check]        recompute the counters of .showcase.json and rewrite the markers
                                (--check writes nothing; exit 4 if a file is stale or a marker is unknown)
-  lint <repo>                  find numbers that look like counts or measures in the README, root .md and SVG text
+  lint <repo>                  find numbers that look like counts or measures in the README, the root .md (not
+                               CHANGELOG, HISTORY, RELEASE_NOTES, NEWS: dated by nature), assets/**/*.svg and every
+                               local SVG the README displays; "files_scanned" lists what was linted
   badge <repo> --kind K        shields.io URL and Markdown for stars|forks|release|last-commit|license|downloads|files
         [--path DIR] [--label TEXT] [--color HEX] [--slug OWNER/REPO]
   install-action <repo> [--force] [--branch NAME]
-                               copy this file and a workflow into the repository (nothing is committed)
+                               copy this file and a workflow into the repository (nothing is committed);
+                               needs .showcase.json: the workflow does a blobless sparse checkout of the files it uses
 
 .showcase.json (at the repository root):
   {"counters": {"vst": {"glob": "plugins/*.md", "exclude": ["README.md"]},       files matching the glob(s)
@@ -19,7 +22,12 @@ Usage: counts.py {sync|lint|badge|install-action} <repo> [options]
                 "ideas": {"lines": "data/ideas.txt"},                           non-empty lines not starting with #
                 "items": {"json": "data/items.json", "path": "items"}},         length of the array at a dotted path
    "files": ["README.md", "assets/*.svg"],            files whose markers are rewritten (default: root *.md, assets SVG)
-   "format": {"vst": {"round": 10, "suffix": "+"}}}   optional: round down to a multiple, then add a suffix
+   "format": {"vst": {"round": 10, "suffix": "+", "sep": ","}}}   optional: round down to a multiple, add a
+                                                                suffix, separate thousands ("3,350+")
+glob and dirs count the files tracked by git (git ls-files, so a sparse or blobless checkout is enough and untracked
+files are ignored) when the repository is a git work tree, else the files found on disk. In patterns, * and ? stay
+inside a folder, **/ matches zero or more folders, [...] is a character class. lines and json read the file on disk,
+else from HEAD.
 Markers: Markdown or HTML  <!-- count:vst -->57<!-- /count -->   SVG or HTML  <tspan data-count="vst">57</tspan>
 A line carrying "showcase: ignore" is skipped by lint.
 
@@ -37,7 +45,7 @@ import subprocess
 import sys
 import traceback
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 EXIT_OK = 0
 EXIT_ERROR = 1
@@ -75,6 +83,15 @@ def _root(path):
     return root
 
 
+def _git_raw(root, *args):
+    """Standard output of a git command run in root, as bytes; None when git is missing or the command fails."""
+    try:
+        result = subprocess.run(["git", "-C", str(root)] + list(args), capture_output=True, timeout=120)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return result.stdout if result.returncode == 0 else None
+
+
 def _as_list(value):
     if value is None:
         return []
@@ -100,10 +117,14 @@ def load_config(root):
     return config
 
 
-def _glob(root, pattern, dirs):
-    """Relative POSIX paths of the files (or folders) matching a glob under root."""
+def _check_pattern(pattern):
     if not isinstance(pattern, str) or not pattern or pattern.startswith("/") or ".." in Path(pattern).parts:
         raise CountsError(EXIT_USAGE, "invalid glob (must be relative, without ..): %r" % (pattern,))
+
+
+def _glob(root, pattern, dirs):
+    """Relative POSIX paths of the files (or folders) matching a glob under root, walking the filesystem."""
+    _check_pattern(pattern)
     found = set()
     try:
         for path in Path(root).glob(pattern):
@@ -115,6 +136,92 @@ def _glob(root, pattern, dirs):
     except (ValueError, NotImplementedError) as error:
         raise CountsError(EXIT_USAGE, "invalid glob %r: %s" % (pattern, error))
     return found
+
+
+def _segment_regex(segment):
+    """Regular expression for one path segment: * and ? never cross a slash, [...] is a class ([!...] negates)."""
+    out, i, size = [], 0, len(segment)
+    while i < size:
+        char = segment[i]
+        if char == "*":
+            while i + 1 < size and segment[i + 1] == "*":
+                i += 1
+            out.append("[^/]*")
+        elif char == "?":
+            out.append("[^/]")
+        elif char == "[":
+            j = i + 1
+            if j < size and segment[j] in "!^":
+                j += 1
+            if j < size and segment[j] == "]":
+                j += 1
+            while j < size and segment[j] != "]":
+                j += 1
+            if j >= size:
+                out.append(re.escape(char))
+            else:
+                body = segment[i + 1:j]
+                negated = body[:1] in ("!", "^")
+                body = re.sub(r"([\\\[\]^])", r"\\\1", body[1:] if negated else body)
+                out.append("[%s%s]" % ("^/" if negated else "", body))
+                i = j
+        else:
+            out.append(re.escape(char))
+        i += 1
+    return "".join(out)
+
+
+def glob_regex(pattern):
+    """Compiled regular expression for a glob over POSIX relative paths: * and ? stay inside a folder, a **/
+    segment matches zero or more folders, a trailing ** matches everything below, [...] is a character class."""
+    _check_pattern(pattern)
+    parts = [part for part in pattern.split("/") if part and part != "."]
+    if not parts:
+        raise CountsError(EXIT_USAGE, "invalid glob: %r" % (pattern,))
+    regex = ""
+    for index, part in enumerate(parts):
+        last = index == len(parts) - 1
+        if part == "**":
+            regex += ".+" if last else "(?:[^/]+/)*"
+        else:
+            regex += _segment_regex(part) + ("" if last else "/")
+    return re.compile(regex)
+
+
+class Tracked:
+    """The paths tracked by git under a repository root (what `git ls-files` lists, skip-worktree entries too)."""
+
+    def __init__(self, files):
+        self.files = sorted(files)
+        self._folders = None
+
+    @property
+    def folders(self):
+        """Distinct ancestor folders of the tracked files."""
+        if self._folders is None:
+            folders = set()
+            for rel in self.files:
+                parts = rel.split("/")[:-1]
+                for depth in range(1, len(parts) + 1):
+                    folders.add("/".join(parts[:depth]))
+            self._folders = folders
+        return self._folders
+
+
+def tracked_paths(root):
+    """Tracked paths of a git work tree, or None (not a repository, git missing, nothing tracked yet): the caller
+    then walks the filesystem."""
+    if (_git_raw(root, "rev-parse", "--is-inside-work-tree") or b"").strip() != b"true":
+        return None
+    listing = _git_raw(root, "ls-files", "-z") or b""
+    files = [name for name in listing.decode("utf-8", "replace").split("\0") if name]
+    return Tracked(files) if files else None
+
+
+def _glob_tracked(tracked, pattern, dirs):
+    regex = glob_regex(pattern)
+    return {rel for rel in (tracked.folders if dirs else tracked.files)
+            if regex.fullmatch(rel) and not set(rel.split("/")) & SKIP_PARTS}
 
 
 def _excluded(root, rel, patterns):
@@ -135,24 +242,39 @@ def _dotted(data, path):
     return data
 
 
-def evaluate(root, name, spec):
-    """Value of one counter."""
+_AUTO = object()
+
+
+def _read_counted(root, name, relative):
+    """Text of a file counted by a lines or json counter: from disk, else from HEAD (sparse checkout)."""
+    target = Path(root) / str(relative)
+    if target.is_file():
+        return target.read_text(encoding="utf-8", errors="replace")
+    if isinstance(relative, str) and relative and not relative.startswith("/") and ".." not in Path(relative).parts:
+        shown = _git_raw(root, "show", "HEAD:./%s" % relative)
+        if shown is not None:
+            return shown.decode("utf-8", errors="replace")
+    raise CountsError(EXIT_USAGE, "counter %s: file not found: %s" % (name, relative))
+
+
+def evaluate(root, name, spec, tracked=_AUTO):
+    """Value of one counter. glob and dirs count the paths tracked by git when root is a git work tree (pass
+    tracked=None to force the filesystem walk), else the files found on disk."""
     root = Path(root)
     if not isinstance(spec, dict):
         raise CountsError(EXIT_USAGE, "counter %s: expected an object" % name)
     exclude = _as_list(spec.get("exclude"))
     for key, dirs in (("glob", False), ("dirs", True)):
         if key in spec:
+            if tracked is _AUTO:
+                tracked = tracked_paths(root)
             found = set()
             for pattern in _as_list(spec[key]):
-                found |= _glob(root, pattern, dirs)
+                found |= _glob_tracked(tracked, pattern, dirs) if tracked else _glob(root, pattern, dirs)
             return len([rel for rel in found if not _excluded(root, rel, exclude)])
     if "lines" in spec or "json" in spec:
         key = "lines" if "lines" in spec else "json"
-        target = root / str(spec[key])
-        if not target.is_file():
-            raise CountsError(EXIT_USAGE, "counter %s: file not found: %s" % (name, spec[key]))
-        text = target.read_text(encoding="utf-8", errors="replace")
+        text = _read_counted(root, name, spec[key])
         if key == "lines":
             return sum(1 for line in text.splitlines() if line.strip() and not line.lstrip().startswith("#"))
         try:
@@ -175,7 +297,11 @@ def display_value(config, name, value):
         shown = value // step * step
         if shown == 0 and value > 0:
             shown, suffix = value, ""
-    return "%s%s" % (shown, suffix)
+    number = str(shown)
+    sep = fmt.get("sep")
+    if isinstance(sep, str) and sep:
+        number = "{:,}".format(shown).replace(",", sep)
+    return "%s%s" % (number, suffix)
 
 
 def rewrite(text, displays):
@@ -212,7 +338,8 @@ def sync(root, check=False):
     """Recompute every counter and update the markers; with check=True nothing is written."""
     root = Path(root)
     config = load_config(root)
-    values = {name: evaluate(root, name, spec) for name, spec in config["counters"].items()}
+    tracked = tracked_paths(root)
+    values = {name: evaluate(root, name, spec, tracked) for name, spec in config["counters"].items()}
     displays = {name: display_value(config, name, value) for name, value in values.items()}
     updated, stale, unknown, markers = [], [], [], 0
     for rel in _target_files(root, config):
@@ -407,11 +534,70 @@ def scan_line(text):
     return hits
 
 
+DATED_DOCS = ("changelog*", "history*", "release_notes*", "release-notes*", "news*")
+IMAGE_MARKDOWN_RE = re.compile(r"!\[[^\]]*\]\(\s*(<[^>]*>|[^)\s]+)")
+IMAGE_REFERENCE_RE = re.compile(r"!\[[^\]]*\]\[([^\]]*)\]")
+REFERENCE_DEFINITION_RE = re.compile(r"^\s{0,3}\[([^\]]+)\]:\s*(<[^>]*>|\S+)", re.M)
+IMG_SRC_RE = re.compile(r"<img\b[^>]*?\ssrc\s*=\s*[\"']([^\"']+)[\"']", re.I)
+SOURCE_SRCSET_RE = re.compile(r"<source\b[^>]*?\ssrcset\s*=\s*[\"']([^\"']+)[\"']", re.I)
+
+
+def _lint_markdown_files(root):
+    """Root Markdown files to lint, the README first; dated documents (changelog, history...) are left out."""
+    names = sorted(_glob(root, "*.md", False), key=lambda n: (n.lower() != "readme.md", n))
+    kept = [n for n in names if not any(fnmatch.fnmatch(n.lower(), pattern) for pattern in DATED_DOCS)]
+    return kept, [n for n in names if n not in kept]
+
+
+def referenced_svgs(root, readme_text):
+    """Local .svg files the README displays (Markdown images, <img src>, <source srcset>) that exist under root."""
+    text = "\n".join(_outside_fences(readme_text))
+    definitions = {m.group(1).strip().lower(): m.group(2) for m in REFERENCE_DEFINITION_RE.finditer(text)}
+    targets = [m.group(1) for m in IMAGE_MARKDOWN_RE.finditer(text)]
+    targets += [definitions[m.group(1).strip().lower()] for m in IMAGE_REFERENCE_RE.finditer(text)
+                if m.group(1).strip().lower() in definitions]
+    targets += [m.group(1) for m in IMG_SRC_RE.finditer(text)]
+    for match in SOURCE_SRCSET_RE.finditer(text):
+        targets += [candidate.split()[0] for candidate in match.group(1).split(",") if candidate.split()]
+    base = Path(root).resolve()
+    found = set()
+    for target in targets:
+        target = unquote(target.strip().strip("<>").split("#", 1)[0].split("?", 1)[0])
+        if not target.lower().endswith(".svg") or re.match(r"[A-Za-z][A-Za-z0-9+.-]*:|//", target):
+            continue
+        path = (base / target.lstrip("/")).resolve()
+        try:
+            rel = path.relative_to(base)
+        except ValueError:
+            continue
+        if path.is_file() and not set(rel.parts) & SKIP_PARTS:
+            found.add(rel.as_posix())
+    return found
+
+
+def _outside_fences(text):
+    fence = None
+    for raw in text.splitlines():
+        stripped = raw.strip()
+        if stripped.startswith(("```", "~~~")):
+            fence = None if fence == stripped[:3] else (fence or stripped[:3])
+        elif not fence:
+            yield raw
+
+
 def lint(root):
-    """Numbers that look like hard-coded counts (warnings) or measures (info) in README, root .md and SVG text."""
+    """Numbers that look like hard-coded counts (warnings) or measures (info) in the README and the other root .md
+    files (not changelogs), in assets/**/*.svg and in every local SVG the README displays."""
     root = Path(root)
-    files = sorted(_glob(root, "*.md", False), key=lambda n: (n.lower() != "readme.md", n)) + sorted(
-        _glob(root, "assets/**/*.svg", False))
+    markdown, dated = _lint_markdown_files(root)
+    svgs = _glob(root, "assets/**/*.svg", False)
+    readme = next((n for n in markdown if n.lower() == "readme.md"), None)
+    if readme:
+        try:
+            svgs |= referenced_svgs(root, (root / readme).read_bytes().decode("utf-8"))
+        except (OSError, UnicodeDecodeError):
+            pass
+    files = markdown + sorted(svgs)
     index = _folder_index(root)
     items = []
     for rel in files:
@@ -437,7 +623,8 @@ def lint(root):
                                           "(for example '75 % in the October 2026 run'); otherwise automate it.")
                 items.append(item)
     warnings = sum(1 for item in items if item["level"] == "warning")
-    return {"items": items, "warnings": warnings, "info": len(items) - warnings, "files_scanned": files}
+    return {"items": items, "warnings": warnings, "info": len(items) - warnings, "files_scanned": files,
+            "files_skipped_dated": dated}
 
 
 # --------------------------------------------------------------------------- badge
@@ -522,6 +709,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout: |
+{sparse}
+          sparse-checkout-cone-mode: false
       - name: Update counters
         run: python3 .github/scripts/showcase_counts.py sync .
       - name: Commit if changed
@@ -537,9 +730,31 @@ jobs:
 """
 
 
+def sparse_patterns(config):
+    """Paths the Action needs on disk (gitignore-style, anchored at the root): the configuration, the vendored
+    script, the files whose markers are rewritten and the files read by the lines and json counters. Everything
+    else is counted from the git index, so a blobless sparse checkout is enough even on a huge repository."""
+    wanted = [CONFIG_NAME, ".github/scripts/"]
+    wanted += _as_list(config.get("files")) or DEFAULT_FILES
+    for spec in config["counters"].values():
+        if isinstance(spec, dict):
+            wanted += [str(spec[key]) for key in ("lines", "json") if key in spec]
+    patterns = []
+    for item in wanted:
+        _check_pattern(item)
+        if "\n" in item:
+            raise CountsError(EXIT_USAGE, "invalid path in %s: %r" % (CONFIG_NAME, item))
+        pattern = "/" + (item[2:] if item.startswith("./") else item)
+        if pattern not in patterns:
+            patterns.append(pattern)
+    return patterns
+
+
 def install_action(root, force=False, branch=None):
     """Copy this script and write the workflow. Nothing is committed: the user reviews and commits."""
     root = Path(root)
+    config = load_config(root)
+    patterns = sparse_patterns(config)
     script = root / ".github" / "scripts" / "showcase_counts.py"
     workflow = root / ".github" / "workflows" / "showcase-counts.yml"
     existing = [str(p.relative_to(root)) for p in (script, workflow) if p.exists()]
@@ -551,10 +766,12 @@ def install_action(root, force=False, branch=None):
     if source != script.resolve():
         shutil.copyfile(str(source), str(script))
     script.chmod(0o755)
-    workflow.write_text(WORKFLOW.format(branch=json.dumps(branch or _branch(root))), encoding="utf-8")
-    notes = ["Review the two files, then commit and push them yourself (nothing was committed)."]
-    if not (root / CONFIG_NAME).is_file():
-        notes.append("%s is missing: the workflow fails until you create it." % CONFIG_NAME)
+    sparse = "\n".join("            " + pattern for pattern in patterns)
+    workflow.write_text(WORKFLOW.format(branch=json.dumps(branch or _branch(root)), sparse=sparse),
+                        encoding="utf-8")
+    notes = ["Review the two files, then commit and push them yourself (nothing was committed).",
+             "The workflow checks out only %s: if you add markers in other files, list them under \"files\" in %s "
+             "and run install-action --force again." % (", ".join(patterns), CONFIG_NAME)]
     return {"written": [str(script.relative_to(root)), str(workflow.relative_to(root))], "overwritten": existing,
             "notes": notes}
 

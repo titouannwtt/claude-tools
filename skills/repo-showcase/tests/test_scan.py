@@ -55,6 +55,31 @@ def exif_tiff(make=b"Acme", gps=True):
     return data
 
 
+def screenshot_tiff():
+    """TIFF stream like the one of a macOS screenshot: no Make, no Model, only dimensions and a UserComment."""
+    comment = b"ASCII\0\0\0Screenshot"
+    sub_offset = 8 + 2 + 12 + 4
+    sub = struct.pack("<H", 3) + struct.pack("<HHII", 0xA002, 4, 1, 1440) + struct.pack("<HHII", 0xA003, 4, 1, 900)
+    sub += struct.pack("<HHII", 0x9286, 7, len(comment), sub_offset + 2 + 36 + 4) + struct.pack("<I", 0) + comment
+    ifd = struct.pack("<H", 1) + struct.pack("<HHII", 0x8769, 4, 1, sub_offset) + struct.pack("<I", 0)
+    return b"II*\0" + struct.pack("<I", 8) + ifd + sub
+
+
+def make_png(*chunks):
+    """PNG signature, the given (type, body) chunks, then IEND (CRCs are not checked by the scanner)."""
+    out = b"\x89PNG\r\n\x1a\n"
+    for kind, body in chunks + ((b"IEND", b""),):
+        out += struct.pack(">I4s", len(body), kind) + body + b"\0\0\0\0"
+    return out
+
+
+def xmp_chunk(properties):
+    """PNG iTXt chunk holding an XMP packet with the given {name: value} properties as attributes."""
+    attributes = " ".join('%s="%s"' % item for item in properties.items())
+    packet = '<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF><rdf:Description %s/></rdf:RDF></x:xmpmeta>' % attributes
+    return b"iTXt", b"XML:com.adobe.xmp\0\0\0\0\0" + packet.encode("utf-8")
+
+
 def make_jpeg(exif=None):
     body = b""
     if exif:
@@ -312,6 +337,25 @@ class PhotoTests(unittest.TestCase):
         tiff = exif_tiff(gps=True)
         with_exif = b"\x89PNG\r\n\x1a\n" + struct.pack(">I4s", len(tiff), b"eXIf") + tiff + b"\0\0\0\0"
         self.assertEqual(self.photo("shot.png", with_exif)["photo-location"]["severity"], "high")
+
+    def test_screenshot_metadata_is_low_not_medium(self):
+        shot = make_png((b"eXIf", screenshot_tiff()))
+        found = self.photo("Screenshot 2026-10-15.png", shot)
+        self.assertEqual(found["photo"]["severity"], "low")
+        self.assertIn("without camera make or model", found["photo"]["detail"])
+        self.assertEqual(self.photo("shot.jpg", make_jpeg(screenshot_tiff()))["photo"]["severity"], "low")
+        xmp = make_png(xmp_chunk({"exif:PixelXDimension": "1440", "exif:PixelYDimension": "900",
+                                  "exif:UserComment": "Screenshot"}))
+        self.assertEqual(self.photo("shot2.png", xmp)["photo"]["severity"], "low")
+
+    def test_camera_make_or_model_in_xmp_is_medium_and_gps_stays_high(self):
+        camera = make_png(xmp_chunk({"tiff:Make": "Acme", "tiff:Model": "Z1"}))
+        self.assertEqual(self.photo("cam.png", camera)["photo"]["severity"], "medium")
+        located = make_png(xmp_chunk({"tiff:Make": "Acme", "exif:GPSLatitude": "48,51.4N",
+                                      "exif:GPSLongitude": "2,17.6E"}))
+        found = self.photo("trip.png", located)
+        self.assertEqual(found["photo-location"]["severity"], "high")
+        self.assertNotIn("photo", found)
 
     def test_faces_make_a_high_photo_person(self):
         with mock.patch.object(scan, "count_faces", return_value=2):

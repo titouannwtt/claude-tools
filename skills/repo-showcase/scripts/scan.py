@@ -27,6 +27,7 @@ import struct
 import subprocess
 import sys
 import zipfile
+import zlib
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -695,8 +696,64 @@ def exif_stdlib(data, ext):
     return parse_tiff(tiff) if tiff else None
 
 
+XMP_JPEG_PREFIX = b"http://ns.adobe.com/xap/1.0/\0"
+
+
+def xmp_packet(data):
+    """Text of the XMP packet of a PNG (iTXt chunk) or a JPEG (APP1 segment), '' when there is none."""
+    packet = b""
+    try:
+        if data[:8] == b"\x89PNG\r\n\x1a\n":
+            pos = 8
+            while pos + 8 <= len(data):
+                length, kind = struct.unpack(">I4s", data[pos:pos + 8])
+                body = data[pos + 8:pos + 8 + length]
+                if kind == b"iTXt" and body.startswith(b"XML:com.adobe.xmp\0"):
+                    rest = body[len(b"XML:com.adobe.xmp\0"):]
+                    flag, rest = rest[0], rest[2:]
+                    packet = rest.split(b"\0", 2)[2] if rest.count(b"\0") >= 2 else b""
+                    if flag == 1:
+                        packet = zlib.decompress(packet)
+                    break
+                if kind in (b"IDAT", b"IEND"):
+                    break
+                pos += 12 + length
+        elif data[:2] == b"\xff\xd8":
+            pos = 2
+            while pos + 4 <= len(data) and data[pos] == 0xFF:
+                marker = data[pos + 1]
+                if marker == 0xDA:
+                    break
+                length = struct.unpack(">H", data[pos + 2:pos + 4])[0]
+                if marker == 0xE1 and data[pos + 4:pos + 4 + len(XMP_JPEG_PREFIX)] == XMP_JPEG_PREFIX:
+                    packet = data[pos + 4 + len(XMP_JPEG_PREFIX):pos + 2 + length]
+                    break
+                pos += 2 + length
+    except (struct.error, IndexError, zlib.error):
+        return ""
+    return packet.decode("utf-8", "replace")
+
+
+def xmp_value(packet, name):
+    """Value of an XMP property written as an attribute or as an element, None when absent or empty."""
+    match = re.search(r'\b%s\s*=\s*"([^"]*)"|<%s[^>]*>([^<]*)<' % (name, name), packet)
+    value = (match.group(1) or match.group(2) or "").strip() if match else ""
+    return value or None
+
+
+def xmp_info(data):
+    """{"make", "model", "gps"} from the XMP packet of an image, or None when it holds no XMP."""
+    packet = xmp_packet(data)
+    if not packet:
+        return None
+    return {"make": xmp_value(packet, "tiff:Make"), "model": xmp_value(packet, "tiff:Model"),
+            "gps": bool(xmp_value(packet, "exif:GPSLatitude") and xmp_value(packet, "exif:GPSLongitude"))}
+
+
 def exif_info(data, ext):
-    """{"make", "model", "gps"} of an image, or None without EXIF. Pillow when importable, else the stdlib parser."""
+    """{"make", "model", "gps"} of an image (EXIF merged with XMP), or None without metadata. Pillow when
+    importable, else the stdlib parser."""
+    info = None
     try:
         from PIL import Image
         with Image.open(io.BytesIO(data)) as image:
@@ -707,10 +764,16 @@ def exif_info(data, ext):
                     gps = bool(exif.get_ifd(0x8825))
                 except Exception:  # noqa: BLE001 - old Pillow without get_ifd
                     gps = 0x8825 in exif
-                return {"make": exif.get(0x010F), "model": exif.get(0x0110), "gps": gps}
-            return None
+                info = {"make": exif.get(0x010F), "model": exif.get(0x0110), "gps": gps}
     except Exception:  # noqa: BLE001 - Pillow absent or unreadable image: fall back
-        return exif_stdlib(data, ext)
+        info = exif_stdlib(data, ext)
+    xmp = xmp_info(data)
+    if xmp:
+        if not info:
+            return xmp
+        info = {"make": info["make"] or xmp["make"], "model": info["model"] or xmp["model"],
+                "gps": info["gps"] or xmp["gps"]}
+    return info
 
 
 def count_faces(data):
@@ -757,8 +820,11 @@ def image_findings(data, ext):
         out.append(("photo-person", "high", "%d face(s) detected" % faces))
     if not out:
         note = "" if faces is not None else "; face detection unavailable"
-        if info:
+        if info and (info["make"] or info["model"]):
             out.append(("photo", "medium", "camera metadata present%s" % note))
+        elif info:
+            out.append(("photo", "low", "metadata without camera make or model (screenshot or edited image)%s"
+                        % note))
         else:
             out.append(("photo", "low", "no EXIF metadata%s" % note))
     return out
