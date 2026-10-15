@@ -49,13 +49,14 @@ table with live star badges · stack · contact and availability. Optional short
 
 ## Metadata (set after the preview is validated)
 
-- Description: one sentence, about 120 characters at most, the same promise as the pitch, in the README language.
-- Topics: five to ten, lowercase, hyphenated, the words people search (language, framework, domain).
+- Description and topics: take the validated list of `keywords` ([keywords.md](keywords.md)). Description: one
+  sentence, about 120 characters at most, the same promise as the pitch, in the README language. Topics: ten to
+  fifteen, lowercase, hyphenated, the words people search (language, framework, domain, use case).
 - Homepage: the site, store page or live demo.
 - Social preview: `social --source assets/<banner>.svg`, uploaded by hand in Settings.
 - Pin the repository on the profile if it should be seen first.
 
-## Proposal format (workflow step 4)
+## Proposal format (workflow step 5)
 
 Present two or three directions, then recommend one:
 

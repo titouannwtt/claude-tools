@@ -41,9 +41,14 @@ Run `python3 $S doctor` once per machine: it says what is possible (history rewr
 3. **Interview**: [references/interview.md](references/interview.md). Two batches of at most four questions,
    pre-filled from the inventory; never ask what the facts already answer. Mascot chosen: ask for the image
    (link or path) and its rights.
-4. **Proposals**: two or three README directions from [references/readme-patterns.md](references/readme-patterns.md),
+4. **Keywords**: `keywords <repo> --save` (sources and rules in [references/keywords.md](references/keywords.md);
+   `--no-remote` for a repository that must stay offline). Then use WebSearch (2 to 4 queries such as
+   "best open source <domain> tools", "<domain> github") to see the vocabulary in use and what the project relates to,
+   merge, and show a short table (term, where to place it, why) for validation. The validated list feeds the pitch,
+   the headings, the description and the topics (applied at Publish with `gh repo edit --add-topic`).
+5. **Proposals**: two or three README directions from [references/readme-patterns.md](references/readme-patterns.md),
    each with what it highlights, for whom, its length and its visuals; recommend one. The user picks.
-5. **Build**:
+6. **Build**:
    - Visuals are custom for each repository: brief the `designer` agent with the template and constraints of
      [references/visuals.md](references/visuals.md) (one message per visual, palette from the product site via
      `site-design` or from the owner's `style_sources`).
@@ -54,9 +59,9 @@ Run `python3 $S doctor` once per machine: it says what is possible (history rewr
      repositories).
    - Structure: present the `structure` findings as suggestions (see
      [references/structure.md](references/structure.md)); apply only the accepted ones, with `git mv`.
-6. **Verify**: `preview <repo>` (static checks + renders at 880 and 390 px, light and dark). Open
+7. **Verify**: `preview <repo>` (static checks + renders at 880 and 390 px, light and dark). Open
    `readme-fold-*.png` and the mobile render with Read. For a flagship repository, add a `visual-qa` agent.
-7. **Publish**: show the user the fold render and the list of changes; after validation commit, push, set the
+8. **Publish**: show the user the fold render and the list of changes; after validation commit, push, set the
    description, topics and homepage with `gh repo edit`. Then `ready <repo>` must exit 0. Offer
    `social <repo> --source assets/<banner>.svg` (uploaded by hand in Settings) and pinning on the profile.
    Private repository: end with the `final_step` sentence.
@@ -67,6 +72,7 @@ Run `python3 $S doctor` once per machine: it says what is possible (history rewr
 |---|---|
 | `doctor` | dependencies and `ready_for` |
 | `inventory <repo>` / `structure <repo>` | facts, layout audit |
+| `keywords <repo> [--seed T] [--no-remote] [--max-search N] [--save]` | sourced keywords, placement, privacy |
 | `security <repo>` / `attribution <repo>` | findings; full redacted report in `.git/repo-showcase/` |
 | `allow <repo> <fp>...` | accept false positives |
 | `fix-plan` / `fix-apply --confirm [--push]` / `fix-prs [--confirm]` | history and remote cleanup |

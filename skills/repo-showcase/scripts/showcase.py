@@ -5,6 +5,7 @@ Usage: showcase.py <command> [options]   (every command prints one JSON object o
 
   doctor                         dependencies and what they enable (audit, rewrite, screenshots, faces, demo)
   inventory <repo>               project type, languages, docs, README stats, GitHub metadata, style sources
+  keywords <repo> [--save]       sourced keywords for GitHub topics, description and README
   structure <repo>               layout audit: junk, duplicates, unclear names, comments, missing files
   security <repo> [--history]    secrets and personal data in the files (and the whole history)
   attribution <repo>             AI co-authorship mentions in commits, files, pull requests and releases
@@ -32,7 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import EXIT_ERROR, Failure, print_json  # noqa: E402
 
 # Each module exposes add_commands(subparsers); every subparser sets func=handler(args) -> exit code.
-MODULES = ("capture", "inventory", "scan", "history", "counts", "ready")
+MODULES = ("capture", "inventory", "scan", "history", "counts", "ready", "keywords")
 
 
 def build_parser():
