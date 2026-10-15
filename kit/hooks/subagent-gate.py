@@ -9,7 +9,8 @@ Model x effort matrix (validated):
 Agent: rejects a model other than haiku/sonnet/opus 5.5, applies the matrix, requires
 model + effort for generic agents, rejects a brief shorter than 400 characters
 (fork exempt).
-Workflow (ultracode): always asks for confirmation, with a summary of models and efforts.
+Workflow (ultracode): rejects forbidden models or efforts, then asks for confirmation with a summary;
+SUBAGENT_GATE_WORKFLOW=allow (settings.json "env") approves valid workflows without asking.
 Set SUBAGENT_GATE_OFF=1 to bypass. Python 3.9 compatible.
 """
 import json
@@ -107,6 +108,23 @@ def tally(values):
     return ", ".join("%s x%d" % (k, v) for k, v in sorted(counts.items())) or "none explicit"
 
 
+def call_pairs(script):
+    """(model, effort) of each agent() call of a workflow script; '' when the call does not set it."""
+    pairs = []
+    for chunk in re.split(r"\bagent\s*\(", script)[1:]:
+        model = re.search(r"\bmodel\s*:\s*['\"]([\w.-]+)['\"]", chunk)
+        effort = re.search(r"\beffort\s*:\s*['\"](\w+)['\"]", chunk)
+        pairs.append((model.group(1).lower() if model else "", effort.group(1).lower() if effort else ""))
+    return pairs
+
+
+def verdict_of(model, effort):
+    """Matrix verdict for one agent() call, or '' if the pair is incomplete or unknown."""
+    if family(model) and effort in ALLOWED_EFFORTS:
+        return MATRIX[family(model)][effort]
+    return ""
+
+
 def gate_workflow(tool_input):
     script = read_script(tool_input)
     name = tool_input.get("name")
@@ -118,6 +136,8 @@ def gate_workflow(tool_input):
     efforts = [e.lower() for e in re.findall(r"\beffort\s*:\s*['\"](\w+)['\"]", script)]
     bad = sorted({m for m in models if not family(m) and m != "inherit"})
     bad += sorted({"effort " + e for e in efforts if e not in ALLOWED_EFFORTS})
+    pairs = call_pairs(script)
+    bad += sorted({"%s %s" % (m, e) for m, e in pairs if verdict_of(m, e) == "deny"})
     if bad:
         decide("deny", "subagent-gate: workflow rejected, forbidden values: %s." % ", ".join(bad))
     summary = "workflow \"%s\"" % name
@@ -128,6 +148,13 @@ def gate_workflow(tool_input):
             calls, tally(models), tally(efforts))
         if len(models) < calls:
             summary += "; warning, some agent() calls may have no explicit model (they inherit the session one)"
+    explicit = bool(pairs) and all(m and e for m, e in pairs)
+    confirm = [m + " " + e for m, e in pairs if verdict_of(m, e) == "ask"]
+    if os.environ.get("SUBAGENT_GATE_WORKFLOW", "").strip().lower() == "allow":
+        if explicit and not confirm:
+            decide("allow", "subagent-gate: workflow approved (SUBAGENT_GATE_WORKFLOW=allow). " + summary + ".")
+        summary += "; asked anyway: %s" % (", ".join(confirm) + " needs confirmation" if confirm else
+                                           "every agent() call needs an explicit model and effort")
     decide("ask", "Ultracode / multi-agent Workflow: approval required. " + summary + ".")
 
 

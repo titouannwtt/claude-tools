@@ -55,7 +55,8 @@ Parallelize only independent subtasks, in a single message.
 ## Ultracode and Workflow: mandatory validation
 
 - Ultracode is disabled by default (`"ultracode": false`). Never launch `Workflow` without the user's
-  explicit agreement in the conversation; the hook additionally asks for confirmation on every run.
+  explicit agreement in the conversation; the hook additionally asks for confirmation on every run, unless
+  `SUBAGENT_GATE_WORKFLOW=allow` is set in the `env` of settings.json (models and efforts are still checked).
 - The keyword `ultracode` typed by the user counts as agreement for that request only.
 - Good candidates: cross-cutting audit, large migration, many independent and verifiable subtasks,
   adversarial review. Bad: local change, request still vague (scope it first).

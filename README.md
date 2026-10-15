@@ -33,7 +33,8 @@ It is built around three goals:
 <p align="center"><img src="assets/routing.svg" alt="A hook checks every subagent launch and routes it to Haiku, Sonnet or Opus" width="100%"></p>
 
 - **`subagent-gate.py`** is a `PreToolUse` hook. Before any subagent starts, it checks the model, the effort,
-  and the length of the brief. Multi-agent workflows always ask you first.
+  and the length of the brief. Multi-agent workflows ask you first, unless you set
+  `SUBAGENT_GATE_WORKFLOW=allow`.
 - **`CLAUDE.md`** holds the rules: which agent for which task, a 7-part brief template, and a reflex to ask
   *"light Haiku research?"* before scanning a large, vague scope.
 - **Skills are scripts first.** The model launches them, reads the result, and only edits the script if it
