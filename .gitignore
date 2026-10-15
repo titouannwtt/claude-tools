@@ -12,3 +12,4 @@ __pycache__/
 target/
 __pycache__/
 *.pyc
+.ruff_cache/

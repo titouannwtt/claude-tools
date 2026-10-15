@@ -22,7 +22,7 @@ It is built around three goals:
   Reviews and hard calls go to Opus. Every skill script has unit tests. When something fails, the rule is:
   improve the brief first, then raise the effort, and only then switch to a bigger model.
 - **Keep a box of reusable skills.** Transcripts, downloads, blocked web pages, site design audits, SEO for
-  AI assistants, Mac automation. Take one, take them all.
+  AI assistants, Mac automation, publish-ready repositories. Take one, take them all.
 
 > [!TIP]
 > Everything is written in English, and Claude still answers in your language. To force it, add one line to
@@ -49,7 +49,7 @@ It is built around three goals:
 | `kit/agents/` | 10 subagents, each pinned to a model and an effort (table below) |
 | `kit/hooks/subagent-gate.py` | The routing hook that enforces the matrix |
 | `kit/settings.snippet.json` | Model pins, hook registration, no AI attribution in commits |
-| `skills/` | 8 skills, each with a tested script |
+| `skills/` | 9 skills, each with a tested script |
 | `lib/` | Helpers shared by skills (local settings, proxy fallback) |
 | `tools/` | Pre-commit checks and a one-command skill publisher |
 
@@ -80,6 +80,7 @@ It is built around three goals:
 | [`site-design`](skills/site-design) | Palette, fonts, spacing, CSS variables and responsive screenshots of a site | Playwright | no |
 | [`mac-control`](skills/mac-control) | Drives Mac apps and forms with safety rails | cua-driver, macOS | no |
 | [`geo-seo`](skills/geo-seo) | Gets a site recommended by Google and AI assistants: audit, plan, fixes, measurement | Python | partly (audit scripts need network) |
+| [`repo-showcase`](skills/repo-showcase) | Makes a repository publish-ready: interview, audit of secrets and personal data (history included), AI-mention cleanup, structure review, custom animated visuals, screenshots, live counters | git, gh; Playwright and git-filter-repo for some steps | no |
 
 ## Install
 
