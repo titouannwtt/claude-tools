@@ -21,7 +21,7 @@ It is built around three goals:
 - **Never trade reliability for it.** Every subagent gets a self-contained brief with acceptance criteria.
   Reviews and hard calls go to Opus. Every skill script has unit tests. When something fails, the rule is:
   improve the brief first, then raise the effort, and only then switch to a bigger model.
-- **Keep a box of reusable skills.** Transcripts, downloads, blocked web pages, site design audits, SEO for
+- **Keep a box of reusable skills.** Agent skills for Claude Code: transcripts, downloads, blocked web pages, site design audits, SEO for
   AI assistants, Mac automation, publish-ready repositories. Take one, take them all.
 
 > [!TIP]
