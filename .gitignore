@@ -13,3 +13,6 @@ target/
 __pycache__/
 *.pyc
 .ruff_cache/
+
+# Local skill, never committed
+skills/roblox-assets/
