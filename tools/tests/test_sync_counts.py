@@ -1,3 +1,4 @@
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -36,6 +37,12 @@ class SyncCountsTest(unittest.TestCase):
         readme = (self.root / "README.md").read_text(encoding="utf-8")
         self.assertIn("3 skills, each", readme)
         self.assertIn("2 subagents,", readme)
+
+    def test_git_ignored_skill_is_not_counted(self):
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True)
+        (self.root / ".gitignore").write_text("skills/c/\n", encoding="utf-8")
+        skills, _ = sc.counts(self.root)
+        self.assertEqual(skills, ["a", "b"])
 
     def test_check_reports_without_writing_then_passes(self):
         self.assertEqual(sc.main(["--root", str(self.root), "--check"]), 1)

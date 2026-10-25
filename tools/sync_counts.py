@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Update the counters of the README and the banner (assets/hero.svg): number of skills and agents.
 
-Counts skills/*/SKILL.md and kit/agents/*.md, then rewrites:
+Counts skills/*/SKILL.md (git-ignored local skills excluded) and kit/agents/*.md, then rewrites:
 - assets/hero.svg: the tspan id="n-skills" and id="n-agents";
 - README.md: "N skills, each ..." and "N subagents, ...".
 Also reports skills missing from the README table or from assets/skills.svg (manual addition: icon, tagline).
@@ -12,12 +12,23 @@ Exit codes: 0 up to date (or updated); 1 mismatch in --check mode. Python 3.9 co
 """
 import argparse
 import re
+import subprocess
 import sys
 from pathlib import Path
 
 
+def is_ignored(root, rel):
+    """True when git ignores the path (private local skill: never counted nor shown); False outside a repo."""
+    try:
+        return subprocess.run(["git", "-C", str(root), "check-ignore", "-q", rel],
+                              capture_output=True).returncode == 0
+    except OSError:
+        return False
+
+
 def counts(root):
-    skills = sorted(p.parent.name for p in (root / "skills").glob("*/SKILL.md"))
+    skills = sorted(p.parent.name for p in (root / "skills").glob("*/SKILL.md")
+                    if not is_ignored(root, "skills/%s" % p.parent.name))
     agents = sorted((root / "kit" / "agents").glob("*.md"))
     return skills, len(agents)
 

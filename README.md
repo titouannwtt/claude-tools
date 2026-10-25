@@ -76,7 +76,7 @@ It is built around three goals:
 | [`light-research`](skills/light-research) | Splits a large scope into ~25k-token batches for Haiku subagents | nothing | no (subagents) |
 | [`skill-forge`](skills/skill-forge) | Decides if a request deserves a skill, then designs, tests and publishes it | git | no |
 | [`video-transcript`](skills/video-transcript) | YouTube transcript from subtitles, or audio + local Whisper | yt-dlp, ffmpeg, faster-whisper | no |
-| [`youtube-download`](skills/youtube-download) | Video, audio, thumbnail or metadata | yt-dlp, ffmpeg | no |
+| [`media-download`](skills/media-download) | Video, or audio only as MP3, from YouTube, Instagram, TikTok and INA links (batches, metadata) | yt-dlp, ffmpeg | no |
 | [`web-fetch`](skills/web-fetch) | Fetches a page when direct access is blocked (403, 429), with proxy fallback | nothing | no |
 | [`site-design`](skills/site-design) | Palette, fonts, spacing, CSS variables and responsive screenshots of a site | Playwright | no |
 | [`mac-control`](skills/mac-control) | Drives Mac apps and forms with safety rails | cua-driver, macOS | no |
