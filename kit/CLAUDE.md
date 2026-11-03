@@ -38,6 +38,18 @@ the brief, then raise the effort one notch, and only then the model.
   `~/.claude/hooks/subagent-gate.py` refuses otherwise). To adjust a named agent, pass `effort`.
 - Do not delegate what takes 1 or 2 tool calls: do it yourself.
 
+## Interface design
+
+Any work that creates or changes a user interface (website, landing page, web or mobile app, dashboard,
+admin panel, component, artifact, prototype, game menu) follows the `apple-design` skill, even if the
+request does not mention design:
+- load it (Skill tool) before writing the first line of UI code, CSS or animation, and run its Quick
+  Reference as a checklist before delivering;
+- the project's own design system wins on look (colors, fonts, radii); the skill still governs feedback,
+  motion, accessibility, typography and craft;
+- in the brief of any subagent touching UI (`designer`, `implementer`, `visual-qa`, ...), require it to
+  read `~/.claude/skills/apple-design/SKILL.md` first.
+
 ## Mandatory brief on every agent launch
 
 A subagent does not see the conversation (except `fork`): the prompt must be self-sufficient.

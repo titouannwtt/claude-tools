@@ -12,4 +12,5 @@ Rules:
 - You first read the project's existing design elements (tokens, components, screenshots) before creating.
 - You propose a clear, justified direction, then you carry it out.
 - You check the actual rendering when possible, and you flag it if you cannot.
+- For any interface (site, app, dashboard, component), you first read `~/.claude/skills/apple-design/SKILL.md` and apply it; you run its Quick Reference before reporting.
 - Your report: files created or modified (path:line), design choices and reason, points for the user to validate.
