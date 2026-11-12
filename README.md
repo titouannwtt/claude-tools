@@ -50,7 +50,7 @@ It is built around three goals:
 | `kit/agents/` | 10 subagents, each pinned to a model and an effort (table below) |
 | `kit/hooks/subagent-gate.py` | The routing hook that enforces the matrix |
 | `kit/settings.snippet.json` | Model pins, hook registration, no AI attribution in commits |
-| `skills/` | 11 skills, each with a tested script |
+| `skills/` | 12 skills, each with a tested script |
 | `lib/` | Helpers shared by skills (local settings, proxy fallback) |
 | `tools/` | Pre-commit checks and a one-command skill publisher |
 
@@ -84,6 +84,7 @@ It is built around three goals:
 | [`repo-showcase`](skills/repo-showcase) | Makes a repository publish-ready: interview, audit of secrets and personal data (history included), AI-mention cleanup, structure review, custom animated visuals, screenshots, live counters | git, gh; Playwright and git-filter-repo for some steps | no |
 | [`promo-codes`](skills/promo-codes) | Finds publicly shared promo codes for a merchant and ranks them best first (listed, never tested) | yt-dlp (optional) | no |
 | [`apple-design`](skills/apple-design) | Apple-style interface rules (feedback, spring motion, materials, typography, accessibility), applied to every UI Claude builds | nothing | yes |
+| [`unslop`](skills/unslop) | Turns AI-looking UI into a designed interface: audit of the tells, a direction from the product, nine fix passes. Third-party skill by [Damir Sokolovsky](https://github.com/heydamir/unslop), CC BY 4.0 | Playwright (snapshots), ffmpeg (story video) | partly (scripts need a browser) |
 
 ## Install
 
@@ -153,6 +154,10 @@ Run all tests: `for d in tools skills/*/; do [ -d "$d/tests" ] && (cd "$d" && py
 ## License
 
 [MIT](LICENSE): copy, adapt and reuse any part, just keep the copyright notice.
+
+One exception: [`skills/unslop`](skills/unslop) is a third-party skill by Damir Sokolovsky
+([heydamir/unslop](https://github.com/heydamir/unslop)), under [CC BY 4.0](skills/unslop/LICENSE). Keep his credit
+in any copy or adaptation; details in [`skills/unslop/NOTICE.md`](skills/unslop/NOTICE.md).
 
 ---
 
