@@ -51,6 +51,14 @@ If the script fails without an expected code (1), or if an output is inconsisten
 - Its address comes from `local.env` at the root of `claude-tools` (key `IPROYAL_RESIDENTIAL_URL`, the residential proxy; ignored by git). Do not use the Web Unblocker: it intercepts TLS and breaks yt-dlp. Limited budget (2 GB): prefer `subs` with the proxy.
 - Never display the proxy value, neither in the chat nor in a versioned file.
 
+## Cookies (when YouTube asks to sign in, "not a bot")
+
+- Only with a cookie file the user supplied for that purpose. Make a private copy (mode 600) limited to the YouTube
+  and Google domains, outside any repository, and pass it with the environment variable `YTDLP_COOKIES=<copy>`
+  (yt-dlp rewrites the file: never point it at the user's original, one copy per parallel process).
+- With cookies, subtitles still fail (429, or a PO Token is required): go straight to route B (`audio`), which works.
+- Never display the content of a cookie file; delete the copies when the batch is done.
+
 ## After the transcript
 
 Read the `.txt`, then answer the user's question from the text, citing the useful timestamps

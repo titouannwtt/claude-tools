@@ -98,6 +98,10 @@ def run_ytdlp(args, proxy=None):
     command = ytdlp_command() + ["--no-warnings", "--no-playlist"]
     if proxy:
         command += ["--proxy", proxy]
+    cookies = os.environ.get("YTDLP_COOKIES")
+    if cookies:
+        # Netscape cookie file supplied by the user (yt-dlp may rewrite it: pass a private copy).
+        command += ["--cookies", cookies]
     try:
         result = subprocess.run(command + args, capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
